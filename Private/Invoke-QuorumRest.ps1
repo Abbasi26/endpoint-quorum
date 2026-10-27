@@ -65,6 +65,6 @@ function Get-QuorumPagedValue {
         }
         $next = Get-QuorumNextLink $page
     }
-    if ($guard -ge 2000) { throw "Stopped paging after 2000 pages: $Uri" }
+    if ($next -and $guard -ge 2000) { throw "Stopped paging after 2000 pages: $Uri" }
     return ,$items.ToArray()
 }
