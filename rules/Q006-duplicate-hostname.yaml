@@ -1,0 +1,19 @@
+id: Q006
+title: Duplicate devices share a hostname
+severity: medium
+enabled: true
+description: >
+  More than one device object resolves to the same hostname, with
+  different Entra device ids or with no shared id.
+whyItMatters: >
+  Conditional Access, inventory, and response can attach to the wrong
+  object when two records answer to one name.
+remediation: >
+  Compare the device ids, owners, and last-seen times. Disable or delete
+  the stale object and keep a single enabled record for the live device.
+groupBy: hostname.key
+condition:
+  all:
+    - fact: hostname.duplicate
+      op: eq
+      value: true

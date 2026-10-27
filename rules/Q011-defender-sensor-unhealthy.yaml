@@ -1,0 +1,36 @@
+id: Q011
+title: Defender sensor is unhealthy while Intune says compliant
+severity: medium
+enabled: true
+description: >
+  Defender has reported recently, but the sensor health is inactive,
+  impaired, or missing data, while Intune still says compliant.
+whyItMatters: >
+  A sensor that checks in and still reports bad health is not protecting
+  the device. Silence is a different problem; this one is a broken sensor
+  that the compliance result does not reflect.
+remediation: >
+  Review sensor health in Defender for Endpoint, repair or reinstall the
+  agent, and add a compliance setting for device health when licensing allows.
+parameters:
+  recentDays: 14
+condition:
+  all:
+    - fact: intune.present
+      op: eq
+      value: true
+    - fact: intune.complianceState
+      op: eq
+      value: compliant
+    - fact: defender.present
+      op: eq
+      value: true
+    - fact: defender.lastSeenAgeDays
+      op: lte
+      valueFrom: recentDays
+    - fact: defender.healthStatus
+      op: in
+      value:
+        - impairedcommunication
+        - inactive
+        - nosensordata

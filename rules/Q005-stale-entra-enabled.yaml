@@ -1,0 +1,30 @@
+id: Q005
+title: Enabled Entra device has gone stale
+severity: medium
+enabled: true
+description: >
+  The Entra device is still enabled, but it has no sign-in timestamp
+  or the last sign-in is older than the allowed number of days.
+whyItMatters: >
+  Stale enabled device objects keep a trust relationship that nobody
+  is using. They are a common place for duplicate and forgotten devices.
+remediation: >
+  Confirm with the owner whether the device is still in service. Disable
+  or delete the Entra object if it is not, and retire it in Intune if present.
+parameters:
+  staleSignInDays: 90
+condition:
+  all:
+    - fact: entra.present
+      op: eq
+      value: true
+    - fact: entra.enabled
+      op: eq
+      value: true
+    - any:
+        - fact: entra.lastSignInAgeDays
+          op: gt
+          valueFrom: staleSignInDays
+        - fact: entra.lastSignInAgeDays
+          op: exists
+          value: false

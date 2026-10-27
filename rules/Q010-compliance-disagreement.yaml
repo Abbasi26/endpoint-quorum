@@ -1,0 +1,37 @@
+id: Q010
+title: Intune and Entra disagree on compliance
+severity: medium
+enabled: true
+description: >
+  Intune says compliant while Entra says the device is not compliant,
+  or Intune says noncompliant while Entra still says compliant.
+whyItMatters: >
+  Conditional Access reads the Entra compliance flag. Intune is where
+  the policy is authored. When those two disagree, the access decision
+  is not the one the Intune admin thinks is in force.
+remediation: >
+  Open the device in both consoles and compare the compliance evaluation
+  time. Force an Intune sync and wait for Entra to refresh isCompliant.
+condition:
+  all:
+    - fact: intune.present
+      op: eq
+      value: true
+    - fact: entra.present
+      op: eq
+      value: true
+    - any:
+        - all:
+            - fact: intune.complianceState
+              op: eq
+              value: compliant
+            - fact: entra.isCompliant
+              op: eq
+              value: false
+        - all:
+            - fact: intune.complianceState
+              op: eq
+              value: noncompliant
+            - fact: entra.isCompliant
+              op: eq
+              value: true

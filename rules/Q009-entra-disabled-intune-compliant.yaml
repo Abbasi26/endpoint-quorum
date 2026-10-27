@@ -1,0 +1,29 @@
+id: Q009
+title: Entra device is disabled while Intune says compliant
+severity: high
+enabled: true
+description: >
+  The Entra device object is disabled, but Intune still reports the
+  managed device as compliant.
+whyItMatters: >
+  Disabling the directory object and retiring the managed device are
+  different actions. One console says the device is blocked and the
+  other still describes it as healthy.
+remediation: >
+  Retire or wipe the Intune record if the device should stay disabled.
+  If the disable was a mistake, re-enable the Entra object and confirm
+  the user can sign in.
+condition:
+  all:
+    - fact: entra.present
+      op: eq
+      value: true
+    - fact: entra.enabled
+      op: eq
+      value: false
+    - fact: intune.present
+      op: eq
+      value: true
+    - fact: intune.complianceState
+      op: eq
+      value: compliant

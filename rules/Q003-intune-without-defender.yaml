@@ -1,0 +1,25 @@
+id: Q003
+title: Intune device is not onboarded to Defender
+severity: high
+enabled: true
+description: >
+  Intune manages this device, but Defender for Endpoint has no onboarded
+  machine record for it.
+whyItMatters: >
+  A managed device with no sensor is invisible to endpoint detection.
+  Compliance can still look healthy if the policy does not require Defender.
+remediation: >
+  Onboard the device to Defender for Endpoint and confirm the machine
+  record reaches Onboarded. Then require that state in the compliance policy.
+condition:
+  all:
+    - fact: intune.present
+      op: eq
+      value: true
+    - any:
+        - fact: defender.present
+          op: eq
+          value: false
+        - fact: defender.onboardingStatus
+          op: ne
+          value: onboarded

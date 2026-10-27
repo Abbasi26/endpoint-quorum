@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quorum report</title>
+<style>
+:root {
+  --bg: #e7dfd2;
+  --ink: #1a1714;
+  --muted: #5e574c;
+  --card: #fbf7f0;
+  --line: #ddd4c6;
+  --side: #13201c;
+  --side-ink: #f4eee4;
+  --side-dim: #a8b2ac;
+  --brass: #c4a15a;
+  --high: #8f2d2a;
+  --high-soft: #f6e4df;
+  --med: #8a5b12;
+  --med-soft: #f7edd6;
+  --low: #1b6843;
+  --low-soft: #e3f1e8;
+  --info: #1d4e74;
+  --info-soft: #e3eef6;
+  --crit: #70152f;
+  --crit-soft: #f8e0e8;
+  --shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 12px 30px rgba(40, 30, 16, 0.06);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.app { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
+.side {
+  background: var(--side);
+  color: var(--side-ink);
+  padding: 28px 22px 32px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+.brand { display: flex; gap: 12px; align-items: center; }
+.mark {
+  font-family: Palatino, "Palatino Linotype", Georgia, serif;
+  font-size: 30px;
+  letter-spacing: 0.04em;
+  margin: 0;
+  font-weight: 600;
+}
+.tag {
+  margin: 8px 0 0;
+  color: var(--side-dim);
+  font-size: 13px;
+}
+.rings { flex: 0 0 auto; }
+.hair { height: 1px; background: rgba(196, 161, 90, 0.55); border: 0; margin: 18px 0; }
+.meta { font-size: 12px; color: var(--side-dim); display: grid; gap: 6px; }
+.meta b { color: var(--side-ink); font-weight: 600; }
+.pill {
+  display: inline-block;
+  border: 1px solid rgba(196, 161, 90, 0.7);
+  color: var(--brass);
+  border-radius: 999px;
+  padding: 2px 8px;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0; }
+.stat {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.stat .n {
+  font-family: Palatino, "Palatino Linotype", Georgia, serif;
+  font-size: 28px;
+  line-height: 1;
+}
+.stat .l { color: var(--side-dim); font-size: 12px; margin-top: 4px; }
+.side h2 {
+  margin: 8px 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--side-dim);
+  font-weight: 600;
+}
+.rule-btn, .tab, .sev, .ghost {
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.rule-btn {
+  width: 100%;
+  color: var(--side-ink);
+  border-radius: 8px;
+  padding: 8px 8px;
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 6px;
+  align-items: baseline;
+}
+.rule-btn small { color: var(--side-dim); }
+.rule-btn.on, .rule-btn:hover { background: rgba(255,255,255,0.06); }
+.rule-btn .count { color: var(--brass); font-variant-numeric: tabular-nums; }
+.main { padding: 28px 32px 64px; min-width: 0; }
+.top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.top h2 {
+  font-family: Palatino, "Palatino Linotype", Georgia, serif;
+  font-size: 34px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.search {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-width: 240px;
+}
+.tabs { display: flex; gap: 6px; }
+.tab, .sev, .ghost {
+  border-radius: 999px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+}
+.tab.on, .sev.on { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.sevs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+.sev .n { font-variant-numeric: tabular-nums; margin-left: 6px; color: inherit; opacity: 0.75; }
+.list { display: grid; gap: 12px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-h {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 0;
+  padding: 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+.sevtag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.sev-high { background: var(--high-soft); color: var(--high); }
+.sev-medium { background: var(--med-soft); color: var(--med); }
+.sev-low { background: var(--low-soft); color: var(--low); }
+.sev-info { background: var(--info-soft); color: var(--info); }
+.sev-critical { background: var(--crit-soft); color: var(--crit); }
+.body { padding: 14px 16px 12px; min-width: 0; }
+.kicker { color: var(--muted); font-size: 12px; letter-spacing: 0.04em; }
+.title {
+  font-family: Palatino, "Palatino Linotype", Georgia, serif;
+  font-size: 20px;
+  margin: 2px 0 4px;
+  font-weight: 600;
+}
+.host { font-weight: 650; }
+.snip { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.dots { display: flex; gap: 6px; margin-top: 8px; }
+.dot {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.dot.on { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.open { border-top: 1px solid var(--line); padding: 16px 18px 18px; display: grid; gap: 14px; }
+.prose { display: grid; gap: 8px; }
+.prose h3 { margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.prose p { margin: 0; max-width: 78ch; }
+.call { background: #f3ecdf; border-radius: 10px; padding: 10px 12px; }
+.ev { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  background: #f3ecdf;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.source {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fffdf9;
+  min-width: 0;
+}
+.source h3 { margin: 0 0 8px; font-size: 14px; }
+.source.empty { color: var(--muted); background: transparent; border-style: dashed; }
+.row { display: grid; grid-template-columns: 110px 1fr; gap: 8px; padding: 3px 0; font-size: 13px; }
+.row b { font-weight: 600; color: var(--muted); }
+.row.is-conflict { background: var(--high-soft); border-radius: 6px; padding: 3px 6px; }
+.banner {
+  background: #f6e4df;
+  color: var(--high);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.empty-state { color: var(--muted); padding: 28px 0; }
+.conf {
+  font-size: 12px;
+  color: var(--muted);
+}
+.warn {
+  margin-top: 8px;
+  color: var(--high);
+  font-size: 13px;
+}
+footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
+@media (max-width: 980px) {
+  .app { grid-template-columns: 1fr; }
+  .side { position: relative; height: auto; }
+  .grid { grid-template-columns: 1fr; }
+  .main { padding: 20px 16px 48px; }
+  .search { min-width: 0; width: 100%; }
+}
+@media print {
+  .side { position: static; height: auto; }
+  .app { display: block; }
+  .search, .tabs, .sevs { display: none; }
+  .card { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg class="rings" width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">
+        <circle cx="16" cy="20" r="9" fill="none" stroke="#c4a15a" stroke-width="1.6"></circle>
+        <circle cx="26" cy="20" r="9" fill="none" stroke="#f4eee4" stroke-width="1.6"></circle>
+        <circle cx="21" cy="27" r="9" fill="none" stroke="#8fa396" stroke-width="1.6"></circle>
+      </svg>
+      <div>
+        <p class="mark">Quorum</p>
+      </div>
+    </div>
+    <p class="tag">Contradictions are the signal.</p>
+    <hr class="hair">
+    <div id="side-meta"></div>
+    <div class="stats" id="side-stats"></div>
+    <h2>Rules</h2>
+    <div id="rule-list"></div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div>
+        <h2 id="view-title">Findings</h2>
+        <p class="lede" id="lede"></p>
+      </div>
+      <div class="tools">
+        <div class="tabs" role="tablist">
+          <button class="tab on" id="tab-findings" type="button">Findings</button>
+          <button class="tab" id="tab-devices" type="button">Devices</button>
+        </div>
+        <input class="search" id="q" type="search" placeholder="Search host, rule, evidence" aria-label="Search the report">
+      </div>
+    </div>
+    <div class="sevs" id="sevs"></div>
+    <div id="banner"></div>
+    <div id="results"></div>
+    <footer class="note" id="foot"></footer>
+  </main>
+</div>
+<script id="quorum-data" type="application/json">__QUORUM_DATA__</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("quorum-data").textContent);
+  var byId = {};
+  data.devices.forEach(function (d) { byId[d.id] = d; });
+  var state = { tab: "findings", severity: "all", rule: "all", query: "", open: {} };
+
+  var sevOrder = ["critical", "high", "medium", "low", "info"];
+  function h(tag, attrs, kids) {
+    var node = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (key) {
+      if (key === "class") node.className = attrs[key];
+      else if (key === "text") node.textContent = attrs[key] == null ? "" : String(attrs[key]);
+      else node.setAttribute(key, attrs[key]);
+    });
+    (kids || []).forEach(function (kid) {
+      if (kid == null) return;
+      node.appendChild(typeof kid === "string" ? document.createTextNode(kid) : kid);
+    });
+    return node;
+  }
+  function countBy(list, pick) {
+    var out = {};
+    list.forEach(function (item) {
+      var key = pick(item);
+      out[key] = (out[key] || 0) + 1;
+    });
+    return out;
+  }
+  function ruleCounts() {
+    return countBy(data.findings, function (f) { return f.ruleId; });
+  }
+  function matchText(parts) {
+    return parts.filter(Boolean).join(" ").toLowerCase();
+  }
+  function filteredFindings() {
+    var q = state.query.trim().toLowerCase();
+    return data.findings.filter(function (f) {
+      if (state.severity !== "all" && f.severity !== state.severity) return false;
+      if (state.rule !== "all" && f.ruleId !== state.rule) return false;
+      if (!q) return true;
+      var ev = (f.evidence || []).map(function (e) { return e.label + " " + e.value; }).join(" ");
+      return matchText([f.hostname, f.ruleId, f.title, f.description, ev]).indexOf(q) >= 0;
+    });
+  }
+  function filteredDevices() {
+    var q = state.query.trim().toLowerCase();
+    return data.devices.filter(function (d) {
+      if (state.severity !== "all") {
+        var hit = (d.findingRuleIds || []).some(function (id) {
+          var rule = data.rules.filter(function (r) { return r.id === id; })[0];
+          return rule && rule.severity === state.severity;
+        });
+        if (!hit) return false;
+      }
+      if (state.rule !== "all" && (d.findingRuleIds || []).indexOf(state.rule) < 0) return false;
+      if (!q) return true;
+      return matchText([d.hostname, d.id, d.matchMethod, (d.sources || []).join(" ")]).indexOf(q) >= 0;
+    });
+  }
+  function snippet(f) {
+    return (f.evidence || []).slice(0, 3).map(function (e) { return e.label + ": " + e.value; }).join("  \u00b7  ");
+  }
+  function sourceDots(names) {
+    var wrap = h("div", { class: "dots" });
+    ["Intune", "Entra", "Defender"].forEach(function (name) {
+      var on = (names || []).indexOf(name) >= 0;
+      wrap.appendChild(h("span", { class: "dot" + (on ? " on" : ""), text: name }));
+    });
+    return wrap;
+  }
+  function matchLine(obj) {
+    var methods = {
+      deviceId: "Matched on Entra device id",
+      hostname: "Matched on hostname",
+      "hostname-normalized": "Matched on short hostname",
+      mixed: "Matched across device id and hostname",
+      multiple: "Several device objects",
+      single: "Seen in one source only"
+    };
+    var line = (methods[obj.matchMethod] || obj.matchMethod) + " \u00b7 confidence " + obj.matchConfidence;
+    if (obj.matchScore) line += " \u00b7 " + obj.matchScore;
+    return line;
+  }
+  function sourceCard(title, source) {
+    if (!source || !source.present) {
+      return h("section", { class: "source empty" }, [
+        h("h3", { text: title }),
+        h("p", { text: "No record in this source." })
+      ]);
+    }
+    var rows = (source.attributes || []).map(function (attr) {
+      return h("div", { class: "row" + (attr.conflict ? " is-conflict" : "") }, [
+        h("b", { text: attr.label }),
+        h("span", { text: attr.value })
+      ]);
+    });
+    return h("section", { class: "source" }, [h("h3", { text: title })].concat(rows));
+  }
+  function deviceBlock(device) {
+    var head = h("div", {}, [
+      h("div", { class: "host", text: device.hostname }),
+      h("div", { class: "conf", text: matchLine(device) }),
+      sourceDots(device.sources)
+    ]);
+    if (device.duplicate) {
+      head.appendChild(h("div", { class: "warn", text: "This hostname is shared by " + device.duplicateCount + " device objects." }));
+    }
+    return h("article", { class: "device" }, [
+      head,
+      h("div", { class: "grid" }, [
+        sourceCard("Intune", device.intune),
+        sourceCard("Entra ID", device.entra),
+        sourceCard("Defender", device.defender)
+      ])
+    ]);
+  }
+  function renderSide() {
+    var meta = data.meta;
+    var host = document.getElementById("side-meta");
+    host.textContent = "";
+    var bits = h("div", { class: "meta" });
+    bits.appendChild(h("div", {}, [h("span", { class: "pill", text: meta.mode }) ]));
+    if (meta.redacted) bits.appendChild(h("div", {}, [h("span", { class: "pill", text: "Redacted" })]));
+    bits.appendChild(h("div", { text: "" }));
+    var clock = h("div");
+    clock.appendChild(document.createTextNode("Data clock "));
+    clock.appendChild(h("b", { text: meta.asOf }));
+    bits.appendChild(clock);
+    var built = h("div");
+    built.appendChild(document.createTextNode("Report built "));
+    built.appendChild(h("b", { text: meta.generatedAt }));
+    bits.appendChild(built);
+    bits.appendChild(h("div", { text: meta.tenantLabel }));
+    host.appendChild(bits);
+
+    var stats = document.getElementById("side-stats");
+    stats.textContent = "";
+    [["Devices", meta.deviceCount], ["Findings", meta.findingCount], ["Clear", meta.clearCount], ["Rules", data.rules.length]].forEach(function (pair) {
+      stats.appendChild(h("div", { class: "stat" }, [
+        h("div", { class: "n", text: pair[1] }),
+        h("div", { class: "l", text: pair[0] })
+      ]));
+    });
+
+    var counts = ruleCounts();
+    var list = document.getElementById("rule-list");
+    list.textContent = "";
+    var all = h("button", { class: "rule-btn" + (state.rule === "all" ? " on" : ""), type: "button" });
+    all.appendChild(h("small", { text: "ALL" }));
+    all.appendChild(h("span", { text: "Every rule" }));
+    all.appendChild(h("span", { class: "count", text: data.findings.length }));
+    all.addEventListener("click", function () { state.rule = "all"; draw(); });
+    list.appendChild(all);
+    data.rules.forEach(function (rule) {
+      var btn = h("button", { class: "rule-btn" + (state.rule === rule.id ? " on" : ""), type: "button" });
+      btn.appendChild(h("small", { text: rule.id }));
+      btn.appendChild(h("span", { text: rule.title }));
+      btn.appendChild(h("span", { class: "count", text: counts[rule.id] || 0 }));
+      btn.addEventListener("click", function () {
+        state.rule = state.rule === rule.id ? "all" : rule.id;
+        draw();
+      });
+      list.appendChild(btn);
+    });
+  }
+  function renderSevs() {
+    var host = document.getElementById("sevs");
+    host.textContent = "";
+    var counts = countBy(state.tab === "findings" ? data.findings : data.findings, function (f) { return f.severity; });
+    var buttons = [{ id: "all", label: "All", n: data.findings.length }];
+    sevOrder.forEach(function (sev) {
+      if (!counts[sev]) return;
+      buttons.push({ id: sev, label: sev, n: counts[sev] });
+    });
+    buttons.forEach(function (btn) {
+      var node = h("button", { class: "sev" + (state.severity === btn.id ? " on" : ""), type: "button" });
+      node.appendChild(document.createTextNode(btn.label));
+      node.appendChild(h("span", { class: "n", text: btn.n }));
+      node.addEventListener("click", function () { state.severity = btn.id; draw(); });
+      host.appendChild(node);
+    });
+  }
+  function renderBanner() {
+    var host = document.getElementById("banner");
+    host.textContent = "";
+    (data.collectors || []).forEach(function (c) {
+      if (c.status === "error") {
+        host.appendChild(h("div", { class: "banner", text: c.source + " collector failed: " + (c.error || "unknown error") }));
+      }
+    });
+  }
+  function renderFindings() {
+    var rows = filteredFindings();
+    var host = document.getElementById("results");
+    host.textContent = "";
+    if (!rows.length) {
+      host.appendChild(h("p", { class: "empty-state", text: "No findings in this view." }));
+      return;
+    }
+    var list = h("div", { class: "list" });
+    rows.forEach(function (f, index) {
+      var key = f.ruleId + ":" + (f.quorumIds || []).join(",") + ":" + index;
+      var open = !!state.open[key];
+      var card = h("article", { class: "card" });
+      var head = h("button", { class: "card-h", type: "button" });
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+      head.appendChild(h("div", { class: "sevtag sev-" + f.severity, text: f.severity }));
+      var body = h("div", { class: "body" }, [
+        h("div", { class: "kicker", text: f.ruleId }),
+        h("div", { class: "title", text: f.title }),
+        h("div", { class: "host", text: f.hostname }),
+        h("div", { class: "snip", text: snippet(f) }),
+        sourceDots(f.sources)
+      ]);
+      head.appendChild(body);
+      head.addEventListener("click", function () {
+        state.open[key] = !state.open[key];
+        draw();
+      });
+      card.appendChild(head);
+      if (open) {
+        var panel = h("div", { class: "open" });
+        panel.appendChild(h("div", { class: "prose" }, [
+          h("p", { text: f.description }),
+          h("div", { class: "call" }, [h("h3", { text: "Why it matters" }), h("p", { text: f.whyItMatters })]),
+          h("div", { class: "call" }, [h("h3", { text: "What to do" }), h("p", { text: f.remediation })])
+        ]));
+        var ev = h("div", { class: "ev" });
+        (f.evidence || []).forEach(function (e) {
+          ev.appendChild(h("span", { class: "chip", text: e.label + ": " + e.value }));
+        });
+        panel.appendChild(ev);
+        (f.quorumIds || []).forEach(function (id) {
+          if (byId[id]) panel.appendChild(deviceBlock(byId[id]));
+        });
+        card.appendChild(panel);
+      }
+      list.appendChild(card);
+    });
+    host.appendChild(list);
+  }
+  function renderDevices() {
+    var rows = filteredDevices();
+    var host = document.getElementById("results");
+    host.textContent = "";
+    if (!rows.length) {
+      host.appendChild(h("p", { class: "empty-state", text: "No devices in this view." }));
+      return;
+    }
+    var list = h("div", { class: "list" });
+    rows.forEach(function (d) {
+      var open = !!state.open["d:" + d.id];
+      var card = h("article", { class: "card" });
+      var head = h("button", { class: "card-h", type: "button" });
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+      var label = d.findingRuleIds && d.findingRuleIds.length ? (d.findingRuleIds.length + " findings") : "clear";
+      head.appendChild(h("div", { class: "sevtag " + (d.findingRuleIds && d.findingRuleIds.length ? "sev-medium" : "sev-low"), text: label }));
+      head.appendChild(h("div", { class: "body" }, [
+        h("div", { class: "title", text: d.hostname }),
+        h("div", { class: "conf", text: matchLine(d) }),
+        sourceDots(d.sources),
+        d.findingRuleIds && d.findingRuleIds.length ? h("div", { class: "snip", text: d.findingRuleIds.join(", ") }) : null
+      ]));
+      head.addEventListener("click", function () {
+        state.open["d:" + d.id] = !state.open["d:" + d.id];
+        draw();
+      });
+      card.appendChild(head);
+      if (open) {
+        card.appendChild(h("div", { class: "open" }, [deviceBlock(d)]));
+      }
+      list.appendChild(card);
+    });
+    host.appendChild(list);
+  }
+  function draw() {
+    document.getElementById("tab-findings").className = "tab" + (state.tab === "findings" ? " on" : "");
+    document.getElementById("tab-devices").className = "tab" + (state.tab === "devices" ? " on" : "");
+    document.getElementById("view-title").textContent = state.tab === "findings" ? "Findings" : "Devices";
+    document.getElementById("lede").textContent = data.meta.note;
+    document.getElementById("foot").textContent = "Quorum " + data.meta.version + ". Read-only. No telemetry. This page does not call a network.";
+    renderSide();
+    renderSevs();
+    renderBanner();
+    if (state.tab === "findings") renderFindings();
+    else renderDevices();
+  }
+  document.getElementById("tab-findings").addEventListener("click", function () { state.tab = "findings"; draw(); });
+  document.getElementById("tab-devices").addEventListener("click", function () { state.tab = "devices"; draw(); });
+  document.getElementById("q").addEventListener("input", function (event) { state.query = event.target.value; draw(); });
+  draw();
+})();
+</script>
+</body>
+</html>

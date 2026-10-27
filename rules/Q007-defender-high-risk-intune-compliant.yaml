@@ -1,0 +1,27 @@
+id: Q007
+title: Defender risk is high while Intune says compliant
+severity: high
+enabled: true
+description: >
+  Defender for Endpoint rates this device High risk, and Intune still
+  reports the compliance state as compliant.
+whyItMatters: >
+  High risk means the sensor saw something serious. A compliant result
+  that ignores that signal lets the device through device-based access.
+remediation: >
+  Open the Defender incident for the device, contain it if required, and
+  change the Intune compliance policy so a High risk score is noncompliant.
+condition:
+  all:
+    - fact: intune.present
+      op: eq
+      value: true
+    - fact: intune.complianceState
+      op: eq
+      value: compliant
+    - fact: defender.present
+      op: eq
+      value: true
+    - fact: defender.riskScore
+      op: eq
+      value: high

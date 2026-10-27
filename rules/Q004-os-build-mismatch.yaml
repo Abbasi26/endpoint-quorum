@@ -1,0 +1,18 @@
+id: Q004
+title: OS build disagrees across sources
+severity: medium
+enabled: true
+description: >
+  At least two sources report different Windows build numbers for the
+  same device. Revision numbers inside one build are ignored.
+whyItMatters: >
+  Patch and feature decisions made from one console can be wrong when
+  another console still has the previous build.
+remediation: >
+  Check which source checked in last. Sync Intune, wait for the next
+  Defender report, and confirm the device actually installed the build.
+condition:
+  all:
+    - fact: os.buildMismatch
+      op: eq
+      value: true

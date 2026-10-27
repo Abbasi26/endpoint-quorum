@@ -1,0 +1,27 @@
+id: Q002
+title: Enabled Windows device in Entra with no Intune record
+severity: medium
+enabled: true
+description: >
+  The Entra device is enabled and reports a Windows operating system,
+  but Intune has no managed-device record for it.
+whyItMatters: >
+  An enabled Entra device can still satisfy device-based Conditional Access
+  even when endpoint management has no record of it.
+remediation: >
+  Decide whether the device should be enrolled. If it is retired or personal,
+  disable or delete the Entra object so it cannot be trusted by mistake.
+condition:
+  all:
+    - fact: entra.present
+      op: eq
+      value: true
+    - fact: entra.enabled
+      op: eq
+      value: true
+    - fact: entra.operatingSystem
+      op: contains
+      value: Windows
+    - fact: intune.present
+      op: eq
+      value: false

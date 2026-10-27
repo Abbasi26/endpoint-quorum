@@ -1,0 +1,34 @@
+id: Q012
+title: Defender still reports for a disabled Entra device
+severity: high
+enabled: true
+description: >
+  Entra has the device disabled, but Defender for Endpoint still has an
+  onboarded machine that reported within the recent window.
+whyItMatters: >
+  The sensor is still phoning home for an identity that should no longer
+  be trusted. That usually means a stale object, a duplicate, or a device
+  that was disabled and not actually retired.
+remediation: >
+  Confirm which physical device is reporting. Offboard Defender if the
+  device is retired, or move the sensor to the Entra object that should
+  remain enabled.
+parameters:
+  recentDays: 14
+condition:
+  all:
+    - fact: entra.present
+      op: eq
+      value: true
+    - fact: entra.enabled
+      op: eq
+      value: false
+    - fact: defender.present
+      op: eq
+      value: true
+    - fact: defender.onboardingStatus
+      op: eq
+      value: onboarded
+    - fact: defender.lastSeenAgeDays
+      op: lte
+      valueFrom: recentDays

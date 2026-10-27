@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pester:
+    name: Pester (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu pwsh
+            os: ubuntu-latest
+            shell: pwsh
+          - name: windows pwsh
+            os: windows-latest
+            shell: pwsh
+          - name: windows powershell 5.1
+            os: windows-latest
+            shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester 5
+        shell: ${{ matrix.shell }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $have = @(Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq [version]'5.9.1' })
+          if ($have.Count -eq 0) {
+            Install-Module Pester -RequiredVersion 5.9.1 -Force -SkipPublisherCheck -Scope CurrentUser
+          }
+          Import-Module Pester -RequiredVersion 5.9.1 -Force
+          Write-Host ("Pester " + (Get-Module Pester).Version)
+
+      - name: Run tests
+        shell: ${{ matrix.shell }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -RequiredVersion 5.9.1 -Force
+          $config = New-PesterConfiguration
+          $config.Run.Path = './tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config

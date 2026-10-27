@@ -1,0 +1,6 @@
+quorum-out/
+uploads/
+*.pfx
+*.pem
+*.pfx.txt
+Quorum-RedactionMap.json

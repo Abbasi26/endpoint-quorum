@@ -1,0 +1,27 @@
+id: Q008
+title: Intune compliance decision is old
+severity: medium
+enabled: true
+description: >
+  Intune still reports compliant, but the device has not synced for more
+  than the allowed number of days, so that decision is stale.
+whyItMatters: >
+  A compliance state only describes the last check-in. Access control that
+  trusts an old check-in is trusting a device that may have changed since.
+remediation: >
+  Find out why the device stopped syncing. If it is gone, retire it in
+  Intune and disable the Entra object. Lower the compliance grace period
+  if healthy devices are allowed to stay green this long.
+parameters:
+  complianceMaxAgeDays: 30
+condition:
+  all:
+    - fact: intune.present
+      op: eq
+      value: true
+    - fact: intune.complianceState
+      op: eq
+      value: compliant
+    - fact: intune.lastSyncAgeDays
+      op: gt
+      valueFrom: complianceMaxAgeDays

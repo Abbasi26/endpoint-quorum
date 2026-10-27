@@ -1,0 +1,30 @@
+id: Q001
+title: Compliant in Intune, silent in Defender
+severity: high
+enabled: true
+description: >
+  Intune still marks this device compliant, but Defender for Endpoint
+  has not reported contact for more than the allowed number of days.
+whyItMatters: >
+  A compliance decision can stay green while the endpoint sensor has gone
+  dark. Conditional Access may keep trusting a device Defender can no longer see.
+remediation: >
+  Confirm the device is on and online, check the Defender sensor service,
+  and re-onboard the device if the sensor is missing. Prefer a compliance
+  policy that requires a recent Defender signal.
+parameters:
+  defenderStaleDays: 14
+condition:
+  all:
+    - fact: intune.present
+      op: eq
+      value: true
+    - fact: intune.complianceState
+      op: eq
+      value: compliant
+    - fact: defender.present
+      op: eq
+      value: true
+    - fact: defender.lastSeenAgeDays
+      op: gt
+      valueFrom: defenderStaleDays
