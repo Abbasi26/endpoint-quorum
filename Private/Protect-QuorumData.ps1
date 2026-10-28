@@ -125,7 +125,7 @@ function Update-QuorumSecretValue {
 function Update-QuorumSecretString {
     param([string]$Text, $Plan)
     if ([string]::IsNullOrEmpty($Text) -or [string]::IsNullOrEmpty($Plan.Pattern)) { return $Text }
-    $regex = New-Object System.Text.RegularExpressions.Regex ($Plan.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    $regex = New-Object System.Text.RegularExpressions.Regex ($Plan.Pattern, ([System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::CultureInvariant))
     $matches = $regex.Matches($Text)
     if ($matches.Count -eq 0) { return $Text }
     $sb = New-Object System.Text.StringBuilder
