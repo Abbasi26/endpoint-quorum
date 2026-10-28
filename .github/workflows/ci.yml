@@ -8,6 +8,9 @@ jobs:
   pester:
     name: Pester (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
     strategy:
       fail-fast: false
       matrix:
@@ -25,7 +28,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Pester 5
-        shell: ${{ matrix.shell }}
         run: |
           $ErrorActionPreference = 'Stop'
           $have = @(Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq [version]'5.9.1' })
@@ -36,7 +38,6 @@ jobs:
           Write-Host ("Pester " + (Get-Module Pester).Version)
 
       - name: Run tests
-        shell: ${{ matrix.shell }}
         run: |
           $ErrorActionPreference = 'Stop'
           Import-Module Pester -RequiredVersion 5.9.1 -Force
