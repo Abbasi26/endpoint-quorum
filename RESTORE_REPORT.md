@@ -1,6 +1,5 @@
 # Restore report: endpoint-quorum (Quorum)
 
-- **Transcript**: `bc-542d6fc0-92b4-5213-ad6b-536f7888dac8.jsonl`
 - **Target repo**: `github.com/Abbasi26/endpoint-quorum` (empty; push deferred to parent)
 - **Restored at**: 2026-10-27 Europe/Berlin
 - **Method**: Replay of Cursor `search_replace` / `editFileResult` diffs. Plus regeneration of `data/demo-inventory.json` from the transcript’s `/tmp/build_demo_inventory.py` (that JSON was produced by a shell run, not a direct file edit, so it was missing after pure diff replay).
