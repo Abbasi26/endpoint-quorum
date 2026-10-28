@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-10-28
 
 - Offline import: `-InventoryPath` for one combined file, or `-IntunePath`, `-EntraPath`, and `-DefenderPath` for separate exports. Each file can be a JSON array or a raw API page with `value`. Missing sources are reported as not provided. `-AsOf` sets the reference time.
 - `-FailOnSeverity` throws after the report is written when a finding reaches the given severity. The result now includes `HighestSeverity`.

@@ -1,6 +1,6 @@
 @{
     RootModule        = 'Quorum.psm1'
-    ModuleVersion     = '0.1.0'
+    ModuleVersion     = '0.2.0'
     GUID              = 'abf01c94-fed2-46fe-acf1-993a0541dfdf'
     Author            = 'Wasaf Abbasi'
     Copyright         = '(c) 2026 Wasaf Abbasi. Licensed under the MIT License.'
