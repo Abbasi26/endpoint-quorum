@@ -1,9 +1,16 @@
 BeforeAll {
-    $manifest = Join-Path (Split-Path -Parent $PSScriptRoot) 'Quorum.psd1'
-    $script:ImportedModule = Import-Module $manifest -Force -PassThru
+    $script:ManifestPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Quorum.psd1'
+    $script:ImportedModule = Import-Module $script:ManifestPath -Force -PassThru
 }
 
 Describe 'Module identity' {
+    It 'has a valid manifest with the expected identity metadata' {
+        $manifest = Test-ModuleManifest -Path $script:ManifestPath -ErrorAction Stop
+        $manifest.Name | Should -BeExactly 'Quorum'
+        $manifest.RootModule | Should -BeExactly 'Quorum.psm1'
+        $manifest.PowerShellVersion | Should -Be ([version]'5.1')
+    }
+
     It 'imports as Quorum and exports only Invoke-Quorum' {
         $script:ImportedModule.Name | Should -BeExactly 'Quorum'
         @($script:ImportedModule.ExportedCommands.Keys).Count | Should -Be 1
@@ -11,6 +18,3 @@ Describe 'Module identity' {
             Should -BeTrue
     }
 }
-
-# Skipped: renaming and runtime changes; tests were not executed during this review.
-# Risk: the reference test still needs validation on the existing CI matrix.
