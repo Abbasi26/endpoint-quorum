@@ -28,7 +28,7 @@ Describe 'Module identity' {
             $module.Name | Should -BeExactly 'Quorum'
             $module.ModuleBase |
                 Should -Be (Split-Path -Parent $script:ManifestPath)
-            @($module.ExportedCommands.Keys).Count | Should -Be 1
+            @($module.ExportedCommands.Keys).Count | Should -Be 2
             $module.ExportedCommands.ContainsKey('Invoke-Quorum') |
                 Should -BeTrue
         }
