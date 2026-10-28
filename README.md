@@ -1,5 +1,7 @@
 # Quorum
 
+[![CI](https://github.com/Abbasi26/endpoint-quorum/actions/workflows/ci.yml/badge.svg)](https://github.com/Abbasi26/endpoint-quorum/actions/workflows/ci.yml)
+
 Quorum reads Intune, Entra ID, and Defender for Endpoint and reports the contradictions between them.
 
 The repository is named `endpoint-quorum`; the PowerShell module is named `Quorum`. From the repository directory, import it with `Import-Module ./Quorum.psd1`.
@@ -198,6 +200,16 @@ Not built yet. Listed so the boundary of 0.1 stays obvious.
 - **0.4** — A CVE briefing built from the OS builds already collected. No new write permission.
 
 Out of scope on purpose: configuration drift, policy-as-code, Conditional Access what-if, and turning a finding into a change in the tenant.
+
+## Status
+
+Version 0.1.0, early but usable. PowerShell module `Quorum` (command `Invoke-Quorum`); the repository is named endpoint-quorum. MIT licensed. Every push runs the test suite in GitHub Actions (`.github/workflows/ci.yml`).
+
+## Install
+
+```sh
+Import-Module ./Quorum.psd1
+```
 
 ## License
 
