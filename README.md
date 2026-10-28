@@ -44,6 +44,25 @@ Invoke-Quorum -Demo -Redact -OutputPath .\quorum-out
 
 Hostnames, display names, UPNs, and IP addresses become stable tokens for that run (`host-`..., `user-`..., `ip-`...). Quorum also writes `Quorum-RedactionMap.json`. Keep the map local. Anyone with the map can reverse the report.
 
+## Evaluate exports you already have
+
+No app registration yet? Export the three inventories once (Graph Explorer, an existing script, or the Defender API) and let Quorum read the files offline:
+
+```powershell
+Invoke-Quorum -IntunePath .\managedDevices.json -EntraPath .\devices.json -DefenderPath .\machines.json -Redact
+```
+
+Each file can be a plain JSON array or a raw API page with a `value` array, so you can save the response as it is. Leave a source out and the report marks it as not provided. For one combined file in the shape of `data/demo-inventory.json`, use `-InventoryPath`. `-AsOf` sets the reference time for the age facts (default: the inventory `asOf`, or now).
+
+## Gate a scheduled run
+
+`-FailOnSeverity` writes the report first and then throws if any finding is at that severity or worse. The result object also carries `HighestSeverity`.
+
+```powershell
+Invoke-Quorum -Demo -FailOnSeverity high      # throws: the demo has high findings
+Invoke-Quorum -Demo -FailOnSeverity critical  # passes
+```
+
 ## Live, read-only collection
 
 Create one app registration. Grant only the permissions in the table below, and admin-consent them. Enable public client flows if you will use device-code sign-in. Quorum never requests a write scope, and it has no client-secret flow.
@@ -163,9 +182,12 @@ Thresholds live in each file under `parameters`. Change the number there; you do
 Copy `rules/Q001-intune-compliant-defender-stale.yaml`, pick a free id, and keep the condition to facts in the table. Then:
 
 ```powershell
+Test-QuorumRule -Path .\rules\Q013-your-rule.yaml
 Invoke-Quorum -Demo -RulesPath .\rules\Q013-your-rule.yaml
 Invoke-Pester ./tests
 ```
+
+`Test-QuorumRule` lints rule files without touching devices: required fields, severity, duplicate ids, unknown facts (a typo would otherwise never match), unknown operators, missing values, and `valueFrom` names that are not in `parameters`. `-Quiet` returns one boolean. CI runs it on `rules/`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review expectations. A rule should describe a contradiction an admin can check. It should not hide a write action or a remediation script.
 
@@ -193,6 +215,8 @@ Details and how to report a vulnerability: [SECURITY.md](SECURITY.md).
 
 ## Roadmap
 
+Detailed plan and good first issues: [ROADMAP.md](ROADMAP.md).
+
 Not built yet. Listed so the boundary of 0.1 stays obvious.
 
 - **0.2** — MECM as a fourth read-only source, through the AdminService.
@@ -203,7 +227,7 @@ Out of scope on purpose: configuration drift, policy-as-code, Conditional Access
 
 ## Status
 
-Version 0.1.0, early but usable. PowerShell module `Quorum` (command `Invoke-Quorum`); the repository is named endpoint-quorum. MIT licensed. Every push runs the test suite in GitHub Actions (`.github/workflows/ci.yml`).
+Version 0.1.0, early but usable. PowerShell module `Quorum` (commands `Invoke-Quorum` and `Test-QuorumRule`); the repository is named endpoint-quorum. MIT licensed. Every push runs the test suite in GitHub Actions (`.github/workflows/ci.yml`).
 
 ## Install
 

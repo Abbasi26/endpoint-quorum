@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Offline import: `-InventoryPath` for one combined file, or `-IntunePath`, `-EntraPath`, and `-DefenderPath` for separate exports. Each file can be a JSON array or a raw API page with `value`. Missing sources are reported as not provided. `-AsOf` sets the reference time.
+- `-FailOnSeverity` throws after the report is written when a finding reaches the given severity. The result now includes `HighestSeverity`.
+- New command `Test-QuorumRule` lints rule files: required fields, duplicate ids, unknown facts and operators, missing values, and undefined `valueFrom` parameters. CI lints the shipped rules.
+- ROADMAP.md with good first issues, issue forms, and a pull request template.
+
 ## 0.1.0 - 2026-10-21
 
 First public slice.

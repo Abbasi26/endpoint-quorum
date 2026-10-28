@@ -46,3 +46,10 @@ jobs:
           $config.Run.Exit = $true
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config
+      - name: Lint shipped rules
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module ./Quorum.psd1 -Force
+          $checks = @(Test-QuorumRule -Path ./rules)
+          $checks | Format-Table Id, Valid, @{ n = 'Errors'; e = { $_.Errors -join '; ' } } -AutoSize | Out-String | Write-Host
+          if (@($checks | Where-Object { -not $_.Valid }).Count -gt 0) { exit 1 }
