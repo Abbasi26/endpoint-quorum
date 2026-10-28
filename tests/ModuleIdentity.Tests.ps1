@@ -17,4 +17,21 @@ Describe 'Module identity' {
         $script:ImportedModule.ExportedCommands.ContainsKey('Invoke-Quorum') |
             Should -BeTrue
     }
+
+    It 'imports by manifest path from outside the repository' {
+        Push-Location -LiteralPath $TestDrive
+        try {
+            $module = Import-Module $script:ManifestPath -Force -PassThru -ErrorAction Stop
+
+            $module.Name | Should -BeExactly 'Quorum'
+            $module.ModuleBase |
+                Should -Be (Split-Path -Parent $script:ManifestPath)
+            @($module.ExportedCommands.Keys).Count | Should -Be 1
+            $module.ExportedCommands.ContainsKey('Invoke-Quorum') |
+                Should -BeTrue
+        }
+        finally {
+            Pop-Location
+        }
+    }
 }
