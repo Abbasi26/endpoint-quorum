@@ -1,0 +1,32 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#groups",
+  "value": [
+    {
+      "id": "00000000-0000-0000-0000-0000000000b1",
+      "displayName": "Dynamic group with memberOf (On)",
+      "groupTypes": [
+        "DynamicMembership"
+      ],
+      "membershipRule": "user.memberof -any (group.objectId -in ['00000000-0000-0000-0000-0000000000e1'])",
+      "membershipRuleProcessingState": "On"
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b2",
+      "displayName": "Dynamic group with memberOf (Paused)",
+      "groupTypes": [
+        "DynamicMembership"
+      ],
+      "membershipRule": "user.memberof -any (group.objectId -in ['00000000-0000-0000-0000-0000000000e2'])",
+      "membershipRuleProcessingState": "Paused"
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b3",
+      "displayName": "Dynamic group by department",
+      "groupTypes": [
+        "DynamicMembership"
+      ],
+      "membershipRule": "user.department -eq \"Sales\"",
+      "membershipRuleProcessingState": "On"
+    }
+  ]
+}

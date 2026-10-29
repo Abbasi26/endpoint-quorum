@@ -1,0 +1,71 @@
+{
+  "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceManagement/configurationPolicies(id,name,templateReference,lastModifiedDateTime)",
+  "value": [
+    {
+      "id": "00000000-0000-0000-0000-000000000301",
+      "name": "LAB Windows baseline current",
+      "lastModifiedDateTime": "2026-09-15T08:00:00Z",
+      "templateReference": {
+        "templateId": "00000000-0000-0000-0000-000000000401_1",
+        "templateFamily": "baseline",
+        "templateDisplayName": "Security Baseline for Windows 10 and later",
+        "templateDisplayVersion": "Version 26H2"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000302",
+      "name": "LAB Windows baseline 24H2",
+      "lastModifiedDateTime": "2026-09-15T08:00:00Z",
+      "templateReference": {
+        "templateId": "00000000-0000-0000-0000-000000000402_1",
+        "templateFamily": "baseline",
+        "templateDisplayName": "Security Baseline for Windows 10 and later",
+        "templateDisplayVersion": "Version 24H2"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000303",
+      "name": "LAB Windows baseline 23H2",
+      "lastModifiedDateTime": "2026-09-15T08:00:00Z",
+      "templateReference": {
+        "templateId": "00000000-0000-0000-0000-000000000403_1",
+        "templateFamily": "baseline",
+        "templateDisplayName": "Security Baseline for Windows 10 and later",
+        "templateDisplayVersion": "Version 23H2"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000304",
+      "name": "LAB Defender for Endpoint baseline",
+      "lastModifiedDateTime": "2026-09-15T08:00:00Z",
+      "templateReference": {
+        "templateId": "00000000-0000-0000-0000-000000000404_1",
+        "templateFamily": "baseline",
+        "templateDisplayName": "Microsoft Defender for Endpoint Security Baseline",
+        "templateDisplayVersion": "Version 24H1"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000305",
+      "name": "LAB settings catalog firewall",
+      "lastModifiedDateTime": "2026-09-15T08:00:00Z",
+      "templateReference": {
+        "templateId": "00000000-0000-0000-0000-000000000405_1",
+        "templateFamily": "none",
+        "templateDisplayName": "",
+        "templateDisplayVersion": ""
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000306",
+      "name": "LAB Windows baseline unknown version",
+      "lastModifiedDateTime": "2026-09-15T08:00:00Z",
+      "templateReference": {
+        "templateId": "00000000-0000-0000-0000-000000000406_1",
+        "templateFamily": "baseline",
+        "templateDisplayName": "Security Baseline for Windows 10 and later",
+        "templateDisplayVersion": null
+      }
+    }
+  ]
+}

@@ -15,4 +15,8 @@ Update-TypeData -TypeName 'Quorum.Result' -DefaultDisplayPropertySet @(
     'Mode', 'DeviceCount', 'FindingCount', 'HtmlPath', 'MarkdownPath', 'CsvPath', 'JsonPath'
 ) -Force
 
-Export-ModuleMember -Function 'Invoke-Quorum', 'Test-QuorumRule'
+Update-TypeData -TypeName 'Quorum.IdentityResult' -DefaultDisplayPropertySet @(
+    'Mode', 'AsOf', 'FindingCount', 'HighestSeverity', 'MarkdownPath', 'CsvPath', 'JsonPath'
+) -Force
+
+Export-ModuleMember -Function 'Invoke-Quorum', 'Test-QuorumRule', 'Invoke-QuorumIdentityCheck'
