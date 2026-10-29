@@ -63,6 +63,30 @@ Invoke-Quorum -Demo -FailOnSeverity high      # throws: the demo has high findin
 Invoke-Quorum -Demo -FailOnSeverity critical  # passes
 ```
 
+## Identity retirement checks (offline)
+
+`Invoke-QuorumIdentityCheck` evaluates saved Microsoft Graph JSON exports only. It does not sign in or call Graph. `-Demo` uses the fictional exports in `data/demo-identity`.
+
+```powershell
+Import-Module ./Quorum.psd1
+Invoke-QuorumIdentityCheck -Demo
+```
+
+It writes `Quorum-IdentityFindings.json`, `Quorum-IdentityFindings.csv`, and `Quorum-IdentitySummary.md`. Add `-Redact` to replace UPNs with `user-...` tokens in the findings; keep the local reversal map private. `-FailOnSeverity` writes those files before throwing.
+
+- E001, [MFA relies only on SMS or voice](https://learn.microsoft.com/en-us/entra/identity/authentication/concept-sms-voice-retirement): Microsoft-provided telephony delivery retires on February 1, 2027 for most users, and on July 1, 2027 for Global Administrators and external users. Internal guests remain on the February date. The check identifies telephony-only registrations from the export. It cannot determine Global Administrator status, distinguish external from internal guests, or determine whether a tenant uses a Microsoft Security Store telephony provider.
+- E002, [Dynamic membership rule uses memberOf](https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of): after November 3, 2026, dynamic membership groups and administrative units using `memberOf` stop updating and remain in their last known state. Entitlement management auto-assignment policies are out of scope.
+
+Export these requests and save each response unchanged, or save its `value` array. The registration details endpoint requires `AuditLog.Read.All` for delegated and application access according to the [List userRegistrationDetails page](https://learn.microsoft.com/en-us/graph/api/authenticationmethodsroot-list-userregistrationdetails?view=graph-rest-1.0). For groups and administrative units, see their linked Graph resource pages for permissions.
+
+```text
+GET https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails
+GET https://graph.microsoft.com/v1.0/groups?$filter=groupTypes/any(c:c eq 'DynamicMembership')&$select=id,displayName,groupTypes,membershipRule,membershipRuleProcessingState
+GET https://graph.microsoft.com/v1.0/directory/administrativeUnits?$select=id,displayName,membershipType,membershipRule,membershipRuleProcessingState
+```
+
+The [userRegistrationDetails resource](https://learn.microsoft.com/en-us/graph/api/resources/userregistrationdetails?view=graph-rest-1.0) describes the registration export. The [administrativeUnit resource](https://learn.microsoft.com/en-us/graph/api/resources/administrativeunit?view=graph-rest-1.0) describes the administrative-unit export.
+
 ## Live, read-only collection
 
 Create one app registration. Grant only the permissions in the table below, and admin-consent them. Enable public client flows if you will use device-code sign-in. Quorum never requests a write scope, and it has no client-secret flow.
@@ -244,3 +268,5 @@ Import-Module ./Quorum.psd1
 Quorum liest den Gerätezustand aus Intune, Entra ID und Microsoft Defender for Endpoint nur lesend ein. Es ordnet die Datensätze über die Entra-Geräte-ID einander zu, sonst über den Hostnamen, und bewertet die Sicherheit des Treffers. Widersprüche zwischen den Quellen werden als Befunde gemeldet: zum Beispiel ein Gerät, das in Intune konform ist, obwohl Defender es seit vielen Tagen nicht gesehen hat, oder ein aktiviertes Entra-Objekt ohne Intune-Eintrag.
 
 Der Einstieg braucht kein Netzwerk: `Import-Module ./Quorum.psd1` und `Invoke-Quorum -Demo`. Dabei entsteht ein HTML-Bericht, eine Markdown-Zusammenfassung sowie CSV und JSON. Mit `-Redact` werden Hostnamen, Namen, UPNs und IP-Adressen innerhalb eines Laufs gleichbleibend pseudonymisiert. Berichte bleiben lokal. Quorum sendet keine Telemetrie und fordert keine Schreibrechte an. Nicht enthalten in 0.1: MECM, Konfigurationsdrift, Richtlinien als Code und eine Simulation des bedingten Zugriffs.
+
+`Invoke-QuorumIdentityCheck` prüft gespeicherte Graph-Exporte ebenfalls offline. Es meldet MFA-Registrierungen, die nur SMS oder Sprache verwenden und ab dem 1. Februar 2027 betroffen sind, sowie dynamische Gruppen und administrative Einheiten mit `memberOf`, die nach dem 3. November 2026 nicht mehr aktualisiert werden. Die Funktion schreibt JSON, CSV und Markdown; `-Demo` nutzt nur fiktive Daten.

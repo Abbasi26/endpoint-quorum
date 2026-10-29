@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added `Invoke-QuorumIdentityCheck` for offline JSON-export checks of the announced SMS/voice and `memberOf` retirements. It writes JSON, CSV, and Markdown findings, supports `-Demo`, `-Redact`, `-AsOf`, and `-FailOnSeverity`.
+- Added fictional identity exports and Pester coverage for the identity checks.
+
 ## 0.2.0 - 2026-10-28
 
 - Offline import: `-InventoryPath` for one combined file, or `-IntunePath`, `-EntraPath`, and `-DefenderPath` for separate exports. Each file can be a JSON array or a raw API page with `value`. Missing sources are reported as not provided. `-AsOf` sets the reference time.
