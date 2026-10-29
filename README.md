@@ -201,7 +201,7 @@ Invoke-Pester ./tests
 
 The tests cover matching, the rule files, collector normalization, and redaction. They use the demo inventory and small in-memory records. They do not sign in.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs that suite on `ubuntu-latest` with PowerShell 7, and on `windows-latest` with PowerShell 7 and Windows PowerShell 5.1.
+GitHub Actions (`.github/workflows/ci.yml`) runs that suite on `ubuntu-latest` with PowerShell 7.6 LTS, and on `windows-latest` with PowerShell 7.6 LTS and Windows PowerShell 5.1.
 
 ## Security and privacy
 
