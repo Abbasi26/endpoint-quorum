@@ -5,6 +5,7 @@ Set-StrictMode -Version 1.0
 # Invoke-QuorumIdentityEvaluator.
 # Sources: https://learn.microsoft.com/en-us/entra/identity/authentication/concept-sms-voice-retirement
 # https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of
+# https://learn.microsoft.com/en-us/intune/device-security/security-baselines/overview
 $script:QuorumIdentityChecks = @(
     [pscustomobject][ordered]@{
         Id             = 'E001'
@@ -25,6 +26,16 @@ $script:QuorumIdentityChecks = @(
         Description    = 'The membership rule of a group or an administrative unit uses the memberOf operator.'
         WhyItMatters   = 'The public preview of the memberOf rule operator is ending. After 2026-11-03, dynamic membership groups, dynamic administrative units, and entitlement management auto-assignment policies that use the memberOf operator stop updating and remain in their last known state.'
         Remediation    = 'Replace the memberOf condition with a rule the service still evaluates, or plan for the membership to stay frozen. Entitlement management auto-assignment policies are out of scope for this check.'
+    },
+    [pscustomobject][ordered]@{
+        Id             = 'E003'
+        Title          = 'Windows security baseline profile is older than the expected version'
+        Severity       = 'medium'
+        SourceUrl      = 'https://learn.microsoft.com/en-us/intune/device-security/security-baselines/overview https://learn.microsoft.com/en-us/intune/whats-new/'
+        RetirementDate = ''
+        Description    = 'An Intune profile based on the Security Baseline for Windows 10 and later uses a baseline version older than the expected one (default 26H2).'
+        WhyItMatters   = 'The Windows security baseline for Windows 11, version 26H2 is available in Intune, and existing baseline profiles do not update to a new version automatically. When a new version becomes available, settings in profiles based on older versions become read-only, and you cannot create new profiles from the older versions.'
+        Remediation    = 'Review the profile customizations, then update the profile to the current baseline version or create a new profile from it. This is a version check, not a retirement, so it has no date.'
     }
 )
 
@@ -39,6 +50,11 @@ $script:QuorumIdentityNonMfaMethods = @('email', 'securityQuestion', 'securityQu
 # non-telephony MFA method, so the user is not flagged, and the name is listed
 # in the run notes.
 $script:QuorumIdentityKnownMfaMethods = @('microsoftAuthenticatorPush', 'passKeyDeviceBound')
+
+# E003: default expected Windows security baseline version, and baseline display
+# names that are not the Windows baseline.
+$script:QuorumIdentityDefaultWindowsBaseline = '26H2'
+$script:QuorumIdentityOtherBaselineMarkers = @('Defender for Endpoint', 'Edge', 'Microsoft 365')
 
 function Get-QuorumIdentityCheckDefinitions {
     return $script:QuorumIdentityChecks
@@ -61,6 +77,7 @@ function Invoke-QuorumIdentityEvaluator {
     switch ($Definition.Id) {
         'E001' { return (Test-QuorumIdentitySmsVoice -Definition $Definition -Data $Data -AsOf $AsOf) }
         'E002' { return (Test-QuorumIdentityMemberOf -Definition $Definition -Data $Data -AsOf $AsOf) }
+        'E003' { return (Test-QuorumIdentityWindowsBaseline -Definition $Definition -Data $Data -AsOf $AsOf) }
         default { throw "No evaluator for identity check '$($Definition.Id)'." }
     }
 }
@@ -75,6 +92,7 @@ function ConvertTo-QuorumIdentityAsOf {
 
 function Get-QuorumIdentityStatus {
     param([datetime]$AsOf, [string]$RetirementDate)
+    if ([string]::IsNullOrWhiteSpace($RetirementDate)) { return 'no date' }
     $date = ConvertTo-QuorumDate $RetirementDate
     if ($null -eq $date) { return 'upcoming' }
     if ($AsOf.Date -gt $date.Date) { return 'retired' }
@@ -83,6 +101,7 @@ function Get-QuorumIdentityStatus {
 
 function Get-QuorumIdentityDaysUntilRetirement {
     param([datetime]$AsOf, [string]$RetirementDate)
+    if ([string]::IsNullOrWhiteSpace($RetirementDate)) { return $null }
     $date = ConvertTo-QuorumDate $RetirementDate
     if ($null -eq $date) { return 0 }
     return ($date.Date - $AsOf.Date).Days
@@ -92,8 +111,11 @@ function Read-QuorumIdentityData {
     param(
         [string]$RegistrationDetailsPath,
         [string]$GroupsPath,
-        [string]$AdministrativeUnitsPath
+        [string]$AdministrativeUnitsPath,
+        [string]$ConfigurationPoliciesPath,
+        [string]$ExpectedWindowsBaseline
     )
+    if ([string]::IsNullOrWhiteSpace($ExpectedWindowsBaseline)) { $ExpectedWindowsBaseline = $script:QuorumIdentityDefaultWindowsBaseline }
     $notes = New-Object System.Collections.Generic.List[string]
     $registrations = @()
     $groups = @()
@@ -119,10 +141,21 @@ function Read-QuorumIdentityData {
     else {
         $notes.Add('No administrative units export was provided, so the administrative unit part of check E002 was not evaluated.')
     }
+    $policies = @()
+    if ($ConfigurationPoliciesPath) {
+        $items = Get-QuorumExportItems (Read-QuorumExportFile -Path $ConfigurationPoliciesPath) $ConfigurationPoliciesPath
+        $policies = @($items)
+        $notes.Add('Check E003 reads configurationPolicies only. Baseline profiles created before May 2023 use the older intents format and were not evaluated.')
+    }
+    else {
+        $notes.Add('No configuration policies export was provided, so check E003 was not evaluated.')
+    }
     return [pscustomobject][ordered]@{
         RegistrationDetails = @($registrations)
         Groups              = @($groups)
         AdministrativeUnits = @($units)
+        ConfigurationPolicies = @($policies)
+        ExpectedWindowsBaseline = $ExpectedWindowsBaseline
         Notes               = $notes
     }
 }
@@ -252,6 +285,82 @@ function New-QuorumIdentityMemberOfFinding {
     }
 }
 
+function Test-QuorumIdentityWindowsBaselineName {
+    param([string]$Name)
+    if ([string]::IsNullOrWhiteSpace($Name)) { return $false }
+    if ($Name -match '(?i)Security Baseline for Windows 10 and later') { return $true }
+    if ($Name -notmatch '(?i)Windows' -or $Name -notmatch '(?i)Security Baseline') { return $false }
+    foreach ($marker in $script:QuorumIdentityOtherBaselineMarkers) {
+        if ($Name.IndexOf($marker, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) { return $false }
+    }
+    return $true
+}
+
+function ConvertTo-QuorumBaselineVersion {
+    # Returns @(year, half) for a token such as 24H2, or $null.
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $null }
+    $m = [regex]::Match($Text, '(?i)\b(\d{2})H([12])\b')
+    if (-not $m.Success) { return $null }
+    return @([int]$m.Groups[1].Value, [int]$m.Groups[2].Value)
+}
+
+function Test-QuorumIdentityWindowsBaseline {
+    param(
+        $Definition,
+        $Data,
+        [datetime]$AsOf
+    )
+    $findings = New-Object System.Collections.Generic.List[object]
+    $expectedText = [string]$Data.ExpectedWindowsBaseline
+    if ([string]::IsNullOrWhiteSpace($expectedText)) { $expectedText = $script:QuorumIdentityDefaultWindowsBaseline }
+    $expected = ConvertTo-QuorumBaselineVersion $expectedText
+    foreach ($policy in @($Data.ConfigurationPolicies)) {
+        if ($null -eq $policy) { continue }
+        $reference = Get-QuorumProperty $policy 'templateReference'
+        if ($null -eq $reference) { continue }
+        if ([string](Get-QuorumProperty $reference 'templateFamily') -ne 'baseline') { continue }
+        $templateName = [string](Get-QuorumProperty $reference 'templateDisplayName')
+        if (-not (Test-QuorumIdentityWindowsBaselineName $templateName)) { continue }
+
+        $displayVersion = [string](Get-QuorumProperty $reference 'templateDisplayVersion')
+        $current = ConvertTo-QuorumBaselineVersion $displayVersion
+        if ($null -eq $current) { $current = ConvertTo-QuorumBaselineVersion $templateName }
+        $severity = $Definition.Severity
+        $note = 'Profile settings are read-only on older versions; update the profile or create a new one after reviewing customizations.'
+        if ($null -ne $current) {
+            if ($current[0] -gt $expected[0]) { continue }
+            if ($current[0] -eq $expected[0] -and $current[1] -ge $expected[1]) { continue }
+        }
+        elseif ([string]::IsNullOrWhiteSpace($displayVersion)) {
+            $severity = 'low'
+            $note = 'Version could not be determined from the export.'
+        }
+        # A non-empty version without a yyHn token, such as November 2021, predates 23H2.
+
+        $findings.Add([pscustomobject][ordered]@{
+            CheckId             = $Definition.Id
+            Id                  = [string](Get-QuorumProperty $policy 'id')
+            Title               = $Definition.Title
+            Severity            = $severity
+            SourceUrl           = $Definition.SourceUrl
+            Description         = $Definition.Description
+            WhyItMatters        = $Definition.WhyItMatters
+            Remediation         = $Definition.Remediation
+            PolicyId            = [string](Get-QuorumProperty $policy 'id')
+            PolicyName          = [string](Get-QuorumProperty $policy 'name')
+            TemplateDisplayName = $templateName
+            CurrentVersion      = $displayVersion
+            ExpectedVersion     = $expectedText
+            RetirementDate      = ''
+            DaysUntilRetirement = $null
+            Status              = 'outdated'
+            Note                = $note
+        })
+    }
+    return $findings.ToArray()
+}
+
 function New-QuorumIdentitySummary {
     param(
         $Definitions,
@@ -371,7 +480,12 @@ function New-QuorumIdentityMarkdown {
         [void]$sb.AppendLine('')
         [void]$sb.AppendLine('Severity: ' + $check.Severity)
         [void]$sb.AppendLine('')
-        [void]$sb.AppendLine('Retirement date: ' + $check.RetirementDate + ' (' + $check.Status + ')')
+        if ([string]::IsNullOrWhiteSpace([string]$check.RetirementDate)) {
+            [void]$sb.AppendLine('Retirement date: none (version check)')
+        }
+        else {
+            [void]$sb.AppendLine('Retirement date: ' + $check.RetirementDate + ' (' + $check.Status + ')')
+        }
         [void]$sb.AppendLine('')
         [void]$sb.AppendLine('Source: ' + $check.SourceUrl)
         [void]$sb.AppendLine('')

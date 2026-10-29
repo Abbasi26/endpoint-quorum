@@ -6,13 +6,15 @@ function Invoke-QuorumIdentityCheck {
         Evaluate announced Microsoft Entra identity retirements from JSON exports.
 
     .DESCRIPTION
-        Quorum reads identity exports you already have and checks them against two
-        announced Microsoft Entra retirements. Nothing is sent anywhere. The command
+        Quorum reads identity exports you already have and checks them against announced
+        Microsoft Entra retirements and the current Intune Windows security baseline. Nothing is sent anywhere. The command
         never calls Microsoft Graph itself; it only reads the JSON files you point it
         at, and -Demo does not touch the network at all.
 
         E001 flags an account whose MFA relies only on SMS or voice.
         E002 flags a dynamic membership rule that uses the memberOf operator.
+        E003 flags an Intune Windows security baseline profile older than
+        -ExpectedWindowsBaseline (default 26H2).
 
     .PARAMETER RegistrationDetailsPath
         Offline export of GET https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails.
@@ -25,6 +27,14 @@ function Invoke-QuorumIdentityCheck {
     .PARAMETER AdministrativeUnitsPath
         Offline export of
         GET https://graph.microsoft.com/v1.0/directory/administrativeUnits?$select=id,displayName,membershipType,membershipRule,membershipRuleProcessingState
+
+    .PARAMETER ConfigurationPoliciesPath
+        Offline export of
+        GET https://graph.microsoft.com/beta/deviceManagement/configurationPolicies?$select=id,name,templateReference,lastModifiedDateTime
+        Baseline profiles created before May 2023 (intents format) are not in this export.
+
+    .PARAMETER ExpectedWindowsBaseline
+        Windows security baseline version that E003 compares against, such as 26H2.
 
     .PARAMETER AsOf
         Reference date for DaysUntilRetirement and for the Status field. Defaults to now.
@@ -67,6 +77,9 @@ function Invoke-QuorumIdentityCheck {
         [string]$RegistrationDetailsPath,
         [string]$GroupsPath,
         [string]$AdministrativeUnitsPath,
+        [string]$ConfigurationPoliciesPath,
+        [ValidatePattern('^\d{2}H[12]$')]
+        [string]$ExpectedWindowsBaseline = '26H2',
         [Nullable[datetime]]$AsOf,
         [string]$OutputPath,
         [switch]$Redact,
@@ -77,16 +90,17 @@ function Invoke-QuorumIdentityCheck {
 
     $ErrorActionPreference = 'Stop'
     if ($Demo) {
-        if ($RegistrationDetailsPath -or $GroupsPath -or $AdministrativeUnitsPath) {
+        if ($RegistrationDetailsPath -or $GroupsPath -or $AdministrativeUnitsPath -or $ConfigurationPoliciesPath) {
             throw '-Demo cannot be combined with an export path.'
         }
         $demoPath = Join-QuorumPath $script:QuorumModuleRoot 'data' 'demo-identity'
         $RegistrationDetailsPath = Join-QuorumPath $demoPath 'userRegistrationDetails.json'
         $GroupsPath = Join-QuorumPath $demoPath 'groups.json'
         $AdministrativeUnitsPath = Join-QuorumPath $demoPath 'administrativeUnits.json'
+        $ConfigurationPoliciesPath = Join-QuorumPath $demoPath 'configurationPolicies.json'
     }
-    if (-not $RegistrationDetailsPath -and -not $GroupsPath -and -not $AdministrativeUnitsPath) {
-        throw 'Specify -RegistrationDetailsPath, -GroupsPath, or -AdministrativeUnitsPath, or -Demo for the bundled sample.'
+    if (-not $RegistrationDetailsPath -and -not $GroupsPath -and -not $AdministrativeUnitsPath -and -not $ConfigurationPoliciesPath) {
+        throw 'Specify -RegistrationDetailsPath, -GroupsPath, -AdministrativeUnitsPath, or -ConfigurationPoliciesPath, or -Demo for the bundled sample.'
     }
     if (-not $OutputPath) {
         $OutputPath = [System.IO.Path]::Combine([string](Get-Location), 'quorum-out')
@@ -95,7 +109,7 @@ function Invoke-QuorumIdentityCheck {
     $mode = 'Import'
     if ($Demo) { $mode = 'Demo' }
     $asOf = ConvertTo-QuorumIdentityAsOf $AsOf
-    $data = Read-QuorumIdentityData -RegistrationDetailsPath $RegistrationDetailsPath -GroupsPath $GroupsPath -AdministrativeUnitsPath $AdministrativeUnitsPath
+    $data = Read-QuorumIdentityData -RegistrationDetailsPath $RegistrationDetailsPath -GroupsPath $GroupsPath -AdministrativeUnitsPath $AdministrativeUnitsPath -ConfigurationPoliciesPath $ConfigurationPoliciesPath -ExpectedWindowsBaseline $ExpectedWindowsBaseline
 
     $collected = New-Object System.Collections.Generic.List[object]
     $definitions = Get-QuorumIdentityCheckDefinitions
@@ -109,6 +123,7 @@ function Invoke-QuorumIdentityCheck {
         @{ Expression = { [string](Get-QuorumProperty $_ 'CheckId') } }, `
         @{ Expression = { [string](Get-QuorumProperty $_ 'UserPrincipalName') } }, `
         @{ Expression = { [string](Get-QuorumProperty $_ 'DisplayName') } }, `
+        @{ Expression = { [string](Get-QuorumProperty $_ 'PolicyName') } }, `
         @{ Expression = { [string](Get-QuorumProperty $_ 'Id') } })
     $findings = @($sorted)
 

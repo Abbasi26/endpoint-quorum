@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added `Invoke-QuorumIdentityCheck` for offline JSON-export checks of the announced SMS/voice and `memberOf` retirements. It writes JSON, CSV, and Markdown findings, supports `-Demo`, `-Redact`, `-AsOf`, and `-FailOnSeverity`.
+- Added E003 to `Invoke-QuorumIdentityCheck`: Intune Windows security baseline profiles older than `-ExpectedWindowsBaseline` (default `26H2`), read from a `configurationPolicies` export via `-ConfigurationPoliciesPath`.
 - Added fictional identity exports and Pester coverage for the identity checks.
 
 ## 0.2.0 - 2026-10-28

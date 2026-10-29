@@ -98,3 +98,67 @@ Describe 'Invoke-QuorumIdentityCheck' {
         $json | Should -Match 'user-[0-9a-f]{12}'
     }
 }
+
+Describe 'Invoke-QuorumIdentityCheck E003 Windows security baseline' {
+    BeforeAll {
+        $script:PolicyPath = Join-Path $script:ModuleRoot 'data/demo-identity/configurationPolicies.json'
+    }
+
+    It 'flags 24H2 and 23H2 as medium, an unknown version as low, and ignores the rest' {
+        $result = Invoke-QuorumIdentityCheck -Demo -AsOf ([datetime]'2026-10-29') -OutputPath (Join-Path $script:Work 'e003-demo') 6>$null
+        $e003 = @($result.Findings | Where-Object { $_.CheckId -eq 'E003' })
+
+        $e003.Count | Should -Be 3
+        @($e003 | Where-Object { $_.Severity -eq 'medium' } | ForEach-Object { $_.CurrentVersion }) | Should -Be @('Version 23H2', 'Version 24H2')
+        $unknown = @($e003 | Where-Object { $_.Severity -eq 'low' })
+        $unknown.Count | Should -Be 1
+        $unknown[0].PolicyName | Should -Be 'LAB Windows baseline unknown version'
+        $unknown[0].Note | Should -Match 'could not be determined'
+        @($e003.PolicyName) | Should -Not -Contain 'LAB Windows baseline current'
+        @($e003.PolicyName) | Should -Not -Contain 'LAB Defender for Endpoint baseline'
+        @($e003.PolicyName) | Should -Not -Contain 'LAB settings catalog firewall'
+    }
+
+    It 'has no retirement date and status outdated' {
+        $result = Invoke-QuorumIdentityCheck -Demo -AsOf ([datetime]'2026-10-29') -OutputPath (Join-Path $script:Work 'e003-status') 6>$null
+        $finding = @($result.Findings | Where-Object { $_.CheckId -eq 'E003' })[0]
+        $finding.Status | Should -Be 'outdated'
+        $finding.RetirementDate | Should -Be ''
+        $finding.DaysUntilRetirement | Should -BeNullOrEmpty
+        $finding.ExpectedVersion | Should -Be '26H2'
+        Get-Content -LiteralPath $result.MarkdownPath -Raw | Should -Match 'Retirement date: none \(version check\)'
+    }
+
+    It 'uses -ExpectedWindowsBaseline for the comparison' {
+        $result = Invoke-QuorumIdentityCheck -ConfigurationPoliciesPath $script:PolicyPath -ExpectedWindowsBaseline 25H2 -AsOf ([datetime]'2026-10-29') -OutputPath (Join-Path $script:Work 'e003-25h2') 6>$null
+        $medium = @($result.Findings | Where-Object { $_.CheckId -eq 'E003' -and $_.Severity -eq 'medium' })
+        @($medium.CurrentVersion) | Should -Contain 'Version 24H2'
+        @($medium.CurrentVersion) | Should -Contain 'Version 23H2'
+        @($medium.CurrentVersion) | Should -Not -Contain 'Version 26H2'
+    }
+
+    It 'rejects an invalid -ExpectedWindowsBaseline' {
+        { Invoke-QuorumIdentityCheck -ConfigurationPoliciesPath $script:PolicyPath -ExpectedWindowsBaseline '2026' -OutputPath (Join-Path $script:Work 'e003-bad') 6>$null } | Should -Throw
+    }
+
+    It 'treats a version without a yyHn token as older' {
+        $path = Join-Path $script:Work 'policies-legacy.json'
+        $items = @([pscustomobject]@{
+            id = 'legacy-1'; name = 'LAB legacy'
+            templateReference = [pscustomobject]@{ templateFamily = 'baseline'; templateDisplayName = 'Security Baseline for Windows 10 and later'; templateDisplayVersion = 'November 2021' }
+        })
+        [System.IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject $items -Depth 5))
+        $result = Invoke-QuorumIdentityCheck -ConfigurationPoliciesPath $path -AsOf ([datetime]'2026-10-29') -OutputPath (Join-Path $script:Work 'e003-legacy') 6>$null
+        $result.FindingCount | Should -Be 1
+        $result.Findings[0].Severity | Should -Be 'medium'
+    }
+
+    It 'accepts a plain array as well as a Graph page' {
+        $page = Get-Content -LiteralPath $script:PolicyPath -Raw | ConvertFrom-Json
+        $path = Join-Path $script:Work 'policies-array.json'
+        [System.IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject @($page.value) -Depth 10))
+        $result = Invoke-QuorumIdentityCheck -ConfigurationPoliciesPath $path -AsOf ([datetime]'2026-10-29') -OutputPath (Join-Path $script:Work 'e003-array') 6>$null
+        $result.FindingCount | Should -Be 3
+        @($result.Notes) -join ' ' | Should -Match 'intents format'
+    }
+}
