@@ -12,6 +12,14 @@ Example: `win11-stale-sensor` synced to Intune yesterday and is compliant. Defen
 
 v0.1 is read-only. It does not compare configuration baselines, author policy as code, simulate Conditional Access, or talk to MECM. Those problems already have other tools.
 
+## Demo video
+
+[![Demo video for endpoint-quorum](docs/media/brag.jpg)](docs/media/brag.mp4)
+
+Quorum is a read-only PowerShell module that cross-checks Intune, Entra ID and Defender for Endpoint and reports where device state disagrees. `Invoke-Quorum -Demo` runs offline on the bundled synthetic inventory and writes HTML, Markdown, CSV and JSON findings. (Click the image to play the video.)
+
+Music: Sascha Ende ([ende.app](https://ende.app)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## How this differs from existing tools
 
 Microsoft365DSC, Maester, CIPP, the Intune and Entra built-in reports, and Conditional Access What-If cover configuration drift, policy tests, and Conditional Access simulation. Quorum only cross-checks device state across Intune, Entra ID, and Defender for Endpoint.
