@@ -78,6 +78,9 @@ function Test-QuorumRule {
             if ($rule.GroupBy -and $script:QuorumKnownFacts -notcontains $rule.GroupBy) {
                 $errors.Add("groupBy uses unknown fact '$($rule.GroupBy)'.")
             }
+            if (-not (Test-QuorumRuleRemediation $rule.Remediation)) {
+                $errors.Add("remediation is too short to be actionable. Write at least one full sentence that names a console and a check.")
+            }
         }
         catch {
             $errors.Add((Get-QuorumErrorMessage $_))
@@ -132,4 +135,15 @@ function Test-QuorumRuleCondition {
             }
         }
     }
+}
+
+function Test-QuorumRuleRemediation {
+    param([string]$Remediation)
+    if ([string]::IsNullOrEmpty($Remediation)) { return $false }
+    $text = $Remediation.Trim()
+    if ($text -eq '') { return $false }
+    $words = $text -split '\s+'
+    if (@($words).Count -lt 4) { return $false }
+    if (-not ($text -match '\.' -or $text -match '\?' -or $text -match '!')) { return $false }
+    return $true
 }
