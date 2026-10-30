@@ -187,7 +187,7 @@ Invoke-Quorum -Demo -RulesPath .\rules\Q013-your-rule.yaml
 Invoke-Pester ./tests
 ```
 
-`Test-QuorumRule` lints rule files without touching devices: required fields, severity, duplicate ids, unknown facts (a typo would otherwise never match), unknown operators, missing values, and `valueFrom` names that are not in `parameters`. `-Quiet` returns one boolean. CI runs it on `rules/`.
+`Test-QuorumRule` lints rule files without touching devices: required fields, severity, duplicate ids, unknown facts (a typo would otherwise never match), unknown operators, missing values, and `valueFrom` names that are not in `parameters`. It also rejects a `remediation` that is a one-word placeholder, because an admin should be able to act on it from the report. `-Quiet` returns one boolean. CI runs it on `rules/`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the test and review expectations. A rule should describe a contradiction an admin can check. It should not hide a write action or a remediation script.
 

@@ -145,7 +145,9 @@ title: Fine
 severity: low
 description: d
 whyItMatters: w
-remediation: r
+remediation: >
+  Open the device in the Intune console, check the compliance state,
+  and confirm the record matches the Entra object.
 condition:
   fact: intune.present
   op: eq
@@ -163,5 +165,48 @@ condition:
 
     It 'throws for a missing path' {
         { Test-QuorumRule -Path (Join-Path $script:Work 'nope') } | Should -Throw '*not found*'
+    }
+
+    It 'flags a remediation that is too short to be actionable' {
+        $dir = Join-Path $script:Work 'rules-short'
+        Write-TestRule $dir 'X004.yaml' @'
+id: X004
+title: Short remediation
+severity: low
+description: d
+whyItMatters: w
+remediation: fix it
+condition:
+  fact: intune.present
+  op: eq
+  value: true
+'@ | Out-Null
+        $check = @(Test-QuorumRule -Path $dir)
+        $check.Count | Should -Be 1
+        $check[0].Valid | Should -BeFalse
+        ($check[0].Errors -join "`n") | Should -Match 'remediation is too short'
+        Test-QuorumRule -Path $dir -Quiet | Should -BeFalse
+    }
+
+    It 'accepts a remediation that names a console and a check' {
+        $dir = Join-Path $script:Work 'rules-good'
+        Write-TestRule $dir 'X005.yaml' @'
+id: X005
+title: Good remediation
+severity: medium
+description: d
+whyItMatters: w
+remediation: >
+  Open the device in the Defender console, check the sensor health,
+  and re-onboard the machine if the agent is missing.
+condition:
+  fact: intune.present
+  op: eq
+  value: true
+'@ | Out-Null
+        $check = @(Test-QuorumRule -Path $dir)
+        $check.Count | Should -Be 1
+        $check[0].Valid | Should -BeTrue
+        Test-QuorumRule -Path $dir -Quiet | Should -BeTrue
     }
 }
