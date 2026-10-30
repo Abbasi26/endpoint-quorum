@@ -6,10 +6,10 @@
   </picture>
 </p>
 
-<p align="center">Finds the devices Intune, Entra ID and Defender disagree about.</p>
+<p align="center">Finds the devices Intune, Entra ID and Defender disagree about.</p>
 
 <p align="center">
-  <img src="docs/assets/readme-hero.png" width="800" alt="Terminal output of Invoke-Quorum -Demo: 36 findings for 50 fictional devices, rules Q001 to Q011 with severity, and a -FailOnSeverity high gate.">
+  <img src="docs/assets/readme-hero.png" width="800" alt="Terminal output of Invoke-Quorum -Demo: 36 findings for 50 fictional devices, 15 high and 21 medium, rules Q001 to Q012 with severity and count, and a -FailOnSeverity high gate reporting 15 high findings.">
 </p>
 
 # Quorum
