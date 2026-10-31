@@ -1,3 +1,17 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
+    <img src="docs/assets/logo-light.svg" alt="endpoint-quorum" height="64">
+  </picture>
+</p>
+
+<p align="center">Finds the devices Intune, Entra ID and Defender disagree about.</p>
+
+<p align="center">
+  <img src="docs/assets/readme-hero.png" width="800" alt="Terminal output of Invoke-Quorum -Demo: 36 findings for 50 fictional devices, 15 high and 21 medium, rules Q001 to Q012 with severity and count, and a -FailOnSeverity high gate reporting 15 high findings.">
+</p>
+
 # Quorum
 
 [![CI](https://github.com/Abbasi26/endpoint-quorum/actions/workflows/ci.yml/badge.svg)](https://github.com/Abbasi26/endpoint-quorum/actions/workflows/ci.yml)
