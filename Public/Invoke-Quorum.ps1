@@ -48,8 +48,8 @@ function Invoke-Quorum {
 
     .PARAMETER InventoryPath
         Evaluate an exported inventory offline. Same shape as data/demo-inventory.json:
-        an object with intune, entra, and defender arrays of raw API objects and an
-        optional asOf timestamp. No sign-in, no network.
+        an object with intune, entra, and defender arrays of raw API objects, optional
+        groups and administrativeUnits arrays, and an optional asOf timestamp. No sign-in, no network.
 
     .PARAMETER IntunePath
         Offline Intune export: a JSON file with the managedDevices objects, either as an
@@ -61,6 +61,15 @@ function Invoke-Quorum {
 
     .PARAMETER DefenderPath
         Offline Defender for Endpoint machines export (array or API page with value).
+
+    .PARAMETER GroupPath
+        Offline Entra groups export (array or Graph page with value), for example from
+        GET /v1.0/groups?$select=id,displayName,groupTypes,membershipRule,membershipRuleProcessingState.
+        Rules with subject: directoryObject (such as Q013) evaluate these objects.
+
+    .PARAMETER AdministrativeUnitPath
+        Offline Entra administrative units export (array or Graph page with value), for example from
+        GET /v1.0/directory/administrativeUnits?$select=id,displayName,membershipType,membershipRule,membershipRuleProcessingState.
 
     .PARAMETER AsOf
         Reference time for ages in an offline import. Defaults to the inventory asOf,
@@ -120,6 +129,8 @@ function Invoke-Quorum {
         [string]$IntunePath,
         [string]$EntraPath,
         [string]$DefenderPath,
+        [string]$GroupPath,
+        [string]$AdministrativeUnitPath,
         [Nullable[datetime]]$AsOf,
         [ValidateSet('critical', 'high', 'medium', 'low', 'info')]
         [string]$FailOnSeverity,
@@ -129,9 +140,9 @@ function Invoke-Quorum {
     )
 
     $ErrorActionPreference = 'Stop'
-    $import = [bool]($InventoryPath -or $IntunePath -or $EntraPath -or $DefenderPath)
-    if ($InventoryPath -and ($IntunePath -or $EntraPath -or $DefenderPath)) {
-        throw 'Use -InventoryPath or the per-source -IntunePath/-EntraPath/-DefenderPath, not both.'
+    $import = [bool]($InventoryPath -or $IntunePath -or $EntraPath -or $DefenderPath -or $GroupPath -or $AdministrativeUnitPath)
+    if ($InventoryPath -and ($IntunePath -or $EntraPath -or $DefenderPath -or $GroupPath -or $AdministrativeUnitPath)) {
+        throw 'Use -InventoryPath or the per-source -IntunePath/-EntraPath/-DefenderPath/-GroupPath/-AdministrativeUnitPath, not both.'
     }
     if ($Demo -and $TenantId) { throw '-Demo cannot be combined with -TenantId.' }
     $modeCount = @($Demo.IsPresent, [bool]$TenantId, $import) | Where-Object { $_ }
@@ -156,6 +167,8 @@ function Invoke-Quorum {
     $asOfOverride = $AsOf
     $asOf = [datetime]::UtcNow
     $collectors = @()
+    $directoryObjects = @()
+    $haveDirectory = $false
 
     if ($Demo) {
         $mode = 'Demo'
@@ -172,6 +185,10 @@ function Invoke-Quorum {
         $intune = @(ConvertTo-QuorumIntuneRecord -Item $inventory.intune)
         $entra = @(ConvertTo-QuorumEntraRecord -Item $inventory.entra)
         $defender = @(ConvertTo-QuorumDefenderRecord -Item $inventory.defender)
+        if ($inventory.PSObject.Properties['groups'] -or $inventory.PSObject.Properties['administrativeUnits']) {
+            $haveDirectory = $true
+            $directoryObjects = @(ConvertTo-QuorumDirectoryObject -Group $(if ($inventory.PSObject.Properties['groups']) { $inventory.groups }) -AdministrativeUnit $(if ($inventory.PSObject.Properties['administrativeUnits']) { $inventory.administrativeUnits }))
+        }
         $collectors = @(
             [pscustomobject]@{ Source = 'Intune'; Records = $intune; Error = $null }
             [pscustomobject]@{ Source = 'Entra'; Records = $entra; Error = $null }
@@ -197,11 +214,22 @@ function Invoke-Quorum {
             if ($inventory.PSObject.Properties['intune']) { $haveIntune = $true; $intuneItems = $inventory.intune }
             if ($inventory.PSObject.Properties['entra']) { $haveEntra = $true; $entraItems = $inventory.entra }
             if ($inventory.PSObject.Properties['defender']) { $haveDefender = $true; $defenderItems = $inventory.defender }
+            if ($inventory.PSObject.Properties['groups'] -or $inventory.PSObject.Properties['administrativeUnits']) {
+                $haveDirectory = $true
+                $directoryObjects = @(ConvertTo-QuorumDirectoryObject -Group $(if ($inventory.PSObject.Properties['groups']) { $inventory.groups }) -AdministrativeUnit $(if ($inventory.PSObject.Properties['administrativeUnits']) { $inventory.administrativeUnits }))
+            }
         }
         else {
             if ($IntunePath) { $haveIntune = $true; $intuneItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $IntunePath) $IntunePath }
             if ($EntraPath) { $haveEntra = $true; $entraItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $EntraPath) $EntraPath }
             if ($DefenderPath) { $haveDefender = $true; $defenderItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $DefenderPath) $DefenderPath }
+            if ($GroupPath -or $AdministrativeUnitPath) {
+                $haveDirectory = $true
+                $groupItems = $null; $unitItems = $null
+                if ($GroupPath) { $groupItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $GroupPath) $GroupPath }
+                if ($AdministrativeUnitPath) { $unitItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $AdministrativeUnitPath) $AdministrativeUnitPath }
+                $directoryObjects = @(ConvertTo-QuorumDirectoryObject -Group $groupItems -AdministrativeUnit $unitItems)
+            }
         }
         $notCollected = 'Not provided in this offline import.'
         $collectors = @(
@@ -235,7 +263,10 @@ function Invoke-Quorum {
     }
 
     $devices = Merge-QuorumDevice -Record $records.ToArray()
-    $findings = Invoke-QuorumRule -Device $devices -Rule $rules -AsOf $asOf
+    $findings = Invoke-QuorumRule -Device $devices -Rule $rules -AsOf $asOf -DirectoryObject $directoryObjects
+    if ($haveDirectory) {
+        $collectors = @($collectors) + @([pscustomobject]@{ Source = 'Entra groups and AUs'; Records = @($directoryObjects); Error = $null })
+    }
     $model = New-QuorumViewModel -Device $devices -Finding $findings -Rule $rules -Collector $collectors -AsOf $asOf -Mode $mode -TenantLabel $tenantLabel -Redacted $Redact.IsPresent
     $map = $null
     if ($Redact) {

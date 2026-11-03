@@ -38,7 +38,9 @@ Describe 'Offline import' {
         $intune = Write-TestJson 'intune.json' @{ value = @($script:Demo.intune) }
         $entra = Write-TestJson 'entra.json' @($script:Demo.entra)
         $defender = Write-TestJson 'defender.json' @{ value = @($script:Demo.defender) }
-        $r = Invoke-Quorum -IntunePath $intune -EntraPath $entra -DefenderPath $defender -AsOf ([datetime]$script:Demo.asOf) -OutputPath (Join-Path $script:Work 'split') 6>$null
+        $groups = Write-TestJson 'groups.json' @{ value = @($script:Demo.groups) }
+        $units = Write-TestJson 'units.json' @($script:Demo.administrativeUnits)
+        $r = Invoke-Quorum -IntunePath $intune -EntraPath $entra -DefenderPath $defender -GroupPath $groups -AdministrativeUnitPath $units -AsOf ([datetime]$script:Demo.asOf) -OutputPath (Join-Path $script:Work 'split') 6>$null
         $demo = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'demo2') 6>$null
         $r.Mode | Should -Be 'Import'
         $r.DeviceCount | Should -Be $demo.DeviceCount

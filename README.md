@@ -68,6 +68,19 @@ Invoke-Quorum -IntunePath .\managedDevices.json -EntraPath .\devices.json -Defen
 
 Each file can be a plain JSON array or a raw API page with a `value` array, so you can save the response as it is. Leave a source out and the report marks it as not provided. For one combined file in the shape of `data/demo-inventory.json`, use `-InventoryPath`. `-AsOf` sets the reference time for the age facts (default: the inventory `asOf`, or now).
 
+### Dynamic groups and administrative units (memberOf)
+
+Since 3 November 2026, dynamic groups and dynamic administrative units whose rule uses the `memberOf` operator no longer update and keep their last known members ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of)). Rule Q013 finds them in an export:
+
+```powershell
+# Graph Explorer or any Graph client, read-only (Group.Read.All / AdministrativeUnit.Read.All):
+# GET https://graph.microsoft.com/v1.0/groups?$select=id,displayName,groupTypes,membershipRule,membershipRuleProcessingState
+# GET https://graph.microsoft.com/v1.0/directory/administrativeUnits?$select=id,displayName,membershipType,membershipRule,membershipRuleProcessingState
+Invoke-Quorum -GroupPath .\groups.json -AdministrativeUnitPath .\administrativeUnits.json
+```
+
+Both files can be combined with the device exports, or put into an inventory file as `groups` and `administrativeUnits` arrays. The live collection does not read groups or administrative units, so it needs no extra permissions.
+
 ## Gate a scheduled run
 
 `-FailOnSeverity` writes the report first and then throws if any finding is at that severity or worse. The result object also carries `HighestSeverity`.
@@ -140,6 +153,7 @@ Rules are YAML files in `rules/`. Each file needs:
 | `condition` | yes | `all`, `any`, `not`, or a `fact` predicate. |
 | `parameters` | no | Numbers or strings the condition can reference with `valueFrom`. |
 | `groupBy` | no | A fact name. Matching devices that share it become one finding. |
+| `subject` | no | `device` (default) or `directoryObject`. A `directoryObject` rule evaluates exported groups and administrative units with the `directory.*` facts. |
 | `enabled` | no | `true` by default. `false` keeps the file but skips it. |
 
 A predicate looks like this:
@@ -170,6 +184,16 @@ Facts a rule can use:
 | `match.method`, `match.confidence`, `match.score` | How this device was joined. |
 | `sources.count` | How many of the three sources are present. |
 
+Facts for `subject: directoryObject` rules:
+
+| Fact | Meaning |
+| --- | --- |
+| `directory.kind` | `group` or `administrativeUnit`. |
+| `directory.displayName`, `directory.membershipRule` | Name and membership rule as exported. |
+| `directory.dynamic` | Group with `DynamicMembership` in `groupTypes`, or AU with `membershipType` `Dynamic`. |
+| `directory.processingState` | Lower-case `membershipRuleProcessingState`, such as `on` or `paused`. |
+| `directory.usesMemberOf` | Dynamic, and the rule uses `user.memberof` or `device.memberof`. |
+
 Ages are whole days before the collection time. In `-Demo`, that time is the `asOf` field in the inventory file.
 
 ### Starter rules
@@ -188,6 +212,7 @@ Ages are whole days before the collection time. In `-Demo`, that time is the `as
 | Q010 | medium | Intune and Entra disagree on compliance. |
 | Q011 | medium | Defender reported within 14 days with an inactive, impaired, or no-sensor health state, and Intune says compliant. |
 | Q012 | high | Entra device is disabled, and Defender still has an onboarded machine that reported within 14 days. |
+| Q013 | high | A dynamic group or dynamic administrative unit uses the `memberOf` operator, which stopped updating on 3 November 2026. Needs a groups or AU export. |
 
 Thresholds live in each file under `parameters`. Change the number there; you do not have to edit the engine.
 
@@ -196,8 +221,8 @@ Thresholds live in each file under `parameters`. Change the number there; you do
 Copy `rules/Q001-intune-compliant-defender-stale.yaml`, pick a free id, and keep the condition to facts in the table. Then:
 
 ```powershell
-Test-QuorumRule -Path .\rules\Q013-your-rule.yaml
-Invoke-Quorum -Demo -RulesPath .\rules\Q013-your-rule.yaml
+Test-QuorumRule -Path .\rules\Q014-your-rule.yaml
+Invoke-Quorum -Demo -RulesPath .\rules\Q014-your-rule.yaml
 Invoke-Pester ./tests
 ```
 

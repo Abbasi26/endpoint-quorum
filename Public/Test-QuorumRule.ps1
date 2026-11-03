@@ -19,7 +19,8 @@ function Test-QuorumRule {
 
     .DESCRIPTION
         Checks every YAML rule in a directory (or one file) for the required fields,
-        a valid severity and id, duplicate ids, unknown facts, unknown operators,
+        a valid severity, subject and id, duplicate ids, unknown facts (device facts for
+        device rules, directory.* facts for subject: directoryObject), unknown operators,
         predicates without a value, and valueFrom references to parameters that do
         not exist. An unknown fact never matches at run time, so a typo would
         otherwise silently disable a rule. Nothing is evaluated against devices.
@@ -74,8 +75,10 @@ function Test-QuorumRule {
             else {
                 $ids[$id] = $file.Name
             }
-            Test-QuorumRuleCondition -Condition $rule.Condition -Parameter $rule.Parameters -Errors $errors -Where 'condition'
-            if ($rule.GroupBy -and $script:QuorumKnownFacts -notcontains $rule.GroupBy) {
+            $known = $script:QuorumKnownFacts
+            if ($rule.Subject -eq 'directoryObject') { $known = $script:QuorumDirectoryFacts }
+            Test-QuorumRuleCondition -Condition $rule.Condition -Parameter $rule.Parameters -Errors $errors -Where 'condition' -Known $known
+            if ($rule.GroupBy -and $known -notcontains $rule.GroupBy) {
                 $errors.Add("groupBy uses unknown fact '$($rule.GroupBy)'.")
             }
         }
@@ -97,7 +100,8 @@ function Test-QuorumRule {
 }
 
 function Test-QuorumRuleCondition {
-    param($Condition, $Parameter, $Errors, [string]$Where)
+    param($Condition, $Parameter, $Errors, [string]$Where, $Known)
+    if ($null -eq $Known) { $Known = $script:QuorumKnownFacts }
     if ($null -eq $Condition -or -not ($Condition -is [System.Collections.IDictionary])) {
         $Errors.Add("$Where is not a mapping.")
         return
@@ -108,12 +112,12 @@ function Test-QuorumRuleCondition {
         return
     }
     switch (@($keys)[0]) {
-        'all' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItems $Condition['all'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.all[$i]"; $i++ } }
-        'any' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItems $Condition['any'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.any[$i]"; $i++ } }
-        'not' { Test-QuorumRuleCondition $Condition['not'] $Parameter $Errors "$Where.not" }
+        'all' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItems $Condition['all'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.all[$i]" $Known; $i++ } }
+        'any' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItems $Condition['any'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.any[$i]" $Known; $i++ } }
+        'not' { Test-QuorumRuleCondition $Condition['not'] $Parameter $Errors "$Where.not" $Known }
         'fact' {
             $name = [string]$Condition['fact']
-            if ($script:QuorumKnownFacts -notcontains $name) {
+            if ($Known -notcontains $name) {
                 $Errors.Add("$Where uses unknown fact '$name'. It would never match.")
             }
             $op = $null

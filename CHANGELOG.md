@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Rule Q013 flags dynamic groups and dynamic administrative units whose membership rule uses `memberOf`. Microsoft stopped updating them on 3 November 2026 ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of)).
+- Rules can set `subject: directoryObject` to evaluate groups and administrative units with the new `directory.*` facts. `Test-QuorumRule` checks the facts against the subject.
+- Offline import reads `-GroupPath` and `-AdministrativeUnitPath`, or `groups` and `administrativeUnits` in an inventory file. The demo inventory has fictional examples.
+
 ## 0.2.0 - 2026-10-28
 
 - Offline import: `-InventoryPath` for one combined file, or `-IntunePath`, `-EntraPath`, and `-DefenderPath` for separate exports. Each file can be a JSON array or a raw API page with `value`. Missing sources are reported as not provided. `-AsOf` sets the reference time.

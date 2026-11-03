@@ -60,6 +60,14 @@ function ConvertTo-QuorumRule {
             $parameters[$name] = $Doc['parameters'][$name]
         }
     }
+    $subject = 'device'
+    if ($Doc.Contains('subject') -and $null -ne $Doc['subject'] -and [string]$Doc['subject'] -ne '') {
+        $subject = ([string]$Doc['subject']).Trim()
+        $known = @('device', 'directoryObject')
+        if ($known -cnotcontains $subject) {
+            throw "Rule $($Doc['id']) has unknown subject '$subject'. Use: $($known -join ', ')."
+        }
+    }
     $groupBy = $null
     if ($Doc.Contains('groupBy') -and $Doc['groupBy']) { $groupBy = [string]$Doc['groupBy'] }
     $id = ([string]$Doc['id']).Trim()
@@ -75,6 +83,7 @@ function ConvertTo-QuorumRule {
         Remediation   = [string]$Doc['remediation']
         Parameters    = $parameters
         GroupBy       = $groupBy
+        Subject       = $subject
         Enabled       = [bool]$enabled
         Condition     = $Doc['condition']
         Path          = $File
@@ -82,19 +91,25 @@ function ConvertTo-QuorumRule {
 }
 
 function Invoke-QuorumRule {
-    param($Device, $Rule, [datetime]$AsOf)
+    param($Device, $Rule, [datetime]$AsOf, $DirectoryObject)
 
     $rules = @($Rule | Where-Object { $_ -and $_.Enabled })
     $devices = @($Device | Where-Object { $_ })
+    $directoryObjects = @($DirectoryObject | Where-Object { $_ })
     $factsById = @{}
     foreach ($one in $devices) {
         $factsById[$one.Id] = Get-QuorumFact -Device $one -AsOf $AsOf
+    }
+    foreach ($one in $directoryObjects) {
+        $factsById[$one.Id] = $one.Facts
     }
 
     $findings = New-Object System.Collections.Generic.List[object]
     foreach ($rule in $rules) {
         $matched = New-Object System.Collections.Generic.List[object]
-        foreach ($one in $devices) {
+        $subjects = $devices
+        if ($rule.PSObject.Properties['Subject'] -and $rule.Subject -eq 'directoryObject') { $subjects = $directoryObjects }
+        foreach ($one in $subjects) {
             $ok = Test-QuorumCondition -Condition $rule.Condition -Fact $factsById[$one.Id] -Parameter $rule.Parameters -RuleId $rule.Id
             if ($ok) { $matched.Add($one) }
         }
@@ -189,6 +204,9 @@ function New-QuorumEvidence {
         'compliance.disagrees'        = $true
         'match.method'                = $true
         'match.confidence'            = $true
+        'directory.kind'              = $true
+        'directory.membershipRule'    = $true
+        'directory.processingState'   = $true
     }
     foreach ($name in (Get-QuorumConditionFact $Condition)) { $wanted[$name] = $true }
     $ordered = [ordered]@{}
