@@ -97,6 +97,53 @@ Describe 'FailOnSeverity' {
     }
 }
 
+Describe 'FailOnCount' {
+    It 'throws when total findings reach the threshold' {
+        $out = Join-Path $script:Work 'cnt1'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnCount 39 6>$null } | Should -Throw '*total finding(s)*Threshold: 39*'
+        Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
+    }
+
+    It 'passes when total findings are below the threshold' {
+        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt2') -FailOnCount 40 6>$null
+        $r.FindingCount | Should -Be 39
+    }
+
+    It 'throws when findings at severity reach the threshold' {
+        $out = Join-Path $script:Work 'cnt3'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity high -FailOnCount 10 6>$null } | Should -Throw '*severity high or worse*Threshold: 10*'
+        Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
+    }
+
+    It 'passes when findings at severity are below the threshold' {
+        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt4') -FailOnSeverity high -FailOnCount 20 6>$null
+        $r.FindingCount | Should -Be 39
+    }
+
+    It 'passes when no finding reaches the severity' {
+        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt5') -FailOnSeverity critical -FailOnCount 1 6>$null
+        $r.FindingCount | Should -Be 39
+    }
+
+    It 'rejects zero threshold' {
+        { Invoke-Quorum -Demo -FailOnCount 0 -OutputPath (Join-Path $script:Work 'cnt6') 6>$null } | Should -Throw
+    }
+
+    It 'rejects negative threshold' {
+        { Invoke-Quorum -Demo -FailOnCount -5 -OutputPath (Join-Path $script:Work 'cnt7') 6>$null } | Should -Throw
+    }
+
+    It 'works with info severity (counts all)' {
+        $out = Join-Path $script:Work 'cnt8'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity info -FailOnCount 39 6>$null } | Should -Throw '*severity info or worse*Threshold: 39*'
+        Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
+    }
+
+    It 'help text documents the parameter' {
+        (Get-Help Invoke-Quorum -Parameter FailOnCount).description.Text | Should -Match 'reaches this threshold'
+    }
+}
+
 Describe 'Test-QuorumRule' {
     It 'accepts every shipped rule' {
         $checks = @(Test-QuorumRule)

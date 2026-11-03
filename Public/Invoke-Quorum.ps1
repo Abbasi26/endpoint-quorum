@@ -79,6 +79,12 @@ function Invoke-Quorum {
         After the report is written, throw if any finding is at this severity or worse
         (critical, high, medium, low, info). Use it in scheduled tasks and pipelines.
 
+    .PARAMETER FailOnCount
+        After the report is written, throw if the number of findings reaches this threshold.
+        With -FailOnSeverity: counts only findings at that severity or worse.
+        Without -FailOnSeverity: counts all findings.
+        Use it in scheduled tasks and pipelines. Named binding recommended.
+
     .PARAMETER GraphBaseUri
         Microsoft Graph base URI, including the version. Default: https://graph.microsoft.com/v1.0
 
@@ -134,6 +140,8 @@ function Invoke-Quorum {
         [Nullable[datetime]]$AsOf,
         [ValidateSet('critical', 'high', 'medium', 'low', 'info')]
         [string]$FailOnSeverity,
+        [ValidateRange(1, 2147483647)]
+        [int]$FailOnCount,
         [string]$GraphBaseUri = 'https://graph.microsoft.com/v1.0',
         [string]$DefenderBaseUri = 'https://api.security.microsoft.com',
         [string]$AuthorityHost = 'https://login.microsoftonline.com'
@@ -302,11 +310,26 @@ function Invoke-Quorum {
         Devices          = @($model['devices'])
         HighestSeverity  = $highest
     }
-    if ($FailOnSeverity) {
+    if ($FailOnSeverity -and -not $FailOnCount) {
         $limit = Get-QuorumSeverityRank $FailOnSeverity
         $over = @($model['findings'] | Where-Object { (Get-QuorumSeverityRank ([string]$_['severity'])) -le $limit })
         if ($over.Count -gt 0) {
             throw ("Quorum found {0} finding(s) at severity {1} or worse. The report was written to {2}." -f $over.Count, $FailOnSeverity, $written.HtmlPath)
+        }
+    }
+
+    if ($FailOnCount) {
+        if ($FailOnSeverity) {
+            $severityLimit = Get-QuorumSeverityRank $FailOnSeverity
+            $over = @($model['findings'] | Where-Object { (Get-QuorumSeverityRank ([string]$_['severity'])) -le $severityLimit })
+            $msg = "Quorum found {0} finding(s) at severity {1} or worse. Threshold: {2}. The report was written to {3}." -f $over.Count, $FailOnSeverity, $FailOnCount, $written.HtmlPath
+        }
+        else {
+            $over = @($model['findings'])
+            $msg = "Quorum found {0} total finding(s). Threshold: {1}. The report was written to {2}." -f $over.Count, $FailOnCount, $written.HtmlPath
+        }
+        if ($over.Count -ge $FailOnCount) {
+            throw $msg
         }
     }
     return $result
