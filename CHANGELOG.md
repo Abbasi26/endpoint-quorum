@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- CI: PowerShell 7.6 LTS (7.6.9, SHA-256 pinned) via `.github/actions/install-pwsh-7-6`; PowerShell 7.4 and 7.5 reach end of support on 10 Nov 2026 ([support lifecycle](https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle)). Windows PowerShell 5.1 unchanged.
+
 ## 0.2.0 - 2026-10-28
 
 - Offline import: `-InventoryPath` for one combined file, or `-IntunePath`, `-EntraPath`, and `-DefenderPath` for separate exports. Each file can be a JSON array or a raw API page with `value`. Missing sources are reported as not provided. `-AsOf` sets the reference time.
