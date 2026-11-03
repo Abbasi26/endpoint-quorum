@@ -32,13 +32,13 @@ The `-FailOnCount` parameter adds a post-evaluation gate in `Invoke-Quorum`:
 ## User Behavior
 
 ```powershell
-# Fail if 10 or more high-or-worse findings (demo has 15 high, per README.md and data/demo-inventory.json)
+# Fail if 10 or more high-or-worse findings (demo has 18 high, measured with Invoke-Quorum -Demo)
 Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10
-# throws: "Quorum found 15 finding(s) at severity high or worse. Threshold: 10. The report was written to ..."
+# throws: "Quorum found 18 finding(s) at severity high or worse. Threshold: 10. The report was written to ..."
 
-# Fail if 36 or more total findings (demo has 36, per README.md and data/demo-inventory.json)
-Invoke-Quorum -Demo -FailOnCount 36
-# throws: "Quorum found 36 total finding(s). Threshold: 36. The report was written to ..."
+# Fail if 39 or more total findings (demo has 39, measured with Invoke-Quorum -Demo)
+Invoke-Quorum -Demo -FailOnCount 39
+# throws: "Quorum found 39 total finding(s). Threshold: 39. The report was written to ..."
 
 # Pass: threshold is above the actual count
 Invoke-Quorum -Demo -FailOnCount 50
@@ -77,14 +77,14 @@ Error message format (mirrors `-FailOnSeverity` style):
 
 ## Acceptance Criteria
 
-1. `Invoke-Quorum -Demo -FailOnCount 36` throws; report exists.
-2. `Invoke-Quorum -Demo -FailOnCount 37` returns result; no throw.
-3. `Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10` throws (15 high findings); report exists.
+1. `Invoke-Quorum -Demo -FailOnCount 39` throws; report exists.
+2. `Invoke-Quorum -Demo -FailOnCount 40` returns result; no throw.
+3. `Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10` throws (18 high findings); report exists.
 4. `Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 20` returns result; no throw.
 5. `Invoke-Quorum -Demo -FailOnSeverity critical -FailOnCount 1` returns result; no throw.
 6. `Invoke-Quorum -Demo -FailOnCount 0` throws parameter validation error.
 7. `Invoke-Quorum -Demo -FailOnCount -5` throws parameter validation error.
-8. `Invoke-Quorum -Demo -FailOnSeverity info -FailOnCount 36` throws (36 total findings); report exists.
+8. `Invoke-Quorum -Demo -FailOnSeverity info -FailOnCount 39` throws (39 total findings); report exists.
 9. Help text (`Get-Help Invoke-Quorum -Parameter FailOnCount`) documents the two modes.
 10. README "Gate a scheduled run" section updated with examples.
 11. CHANGELOG.md updated under "Unreleased".
@@ -173,13 +173,13 @@ Add a new `Describe 'FailOnCount'` block in `tests/V02Features.Tests.ps1`:
 Describe 'FailOnCount' {
     It 'throws when total findings reach the threshold' {
         $out = Join-Path $script:Work 'cnt1'
-        { Invoke-Quorum -Demo -OutputPath $out -FailOnCount 36 6>$null } | Should -Throw '*total finding(s)*Threshold: 36*'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnCount 39 6>$null } | Should -Throw '*total finding(s)*Threshold: 39*'
         Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
     }
 
     It 'passes when total findings are below the threshold' {
-        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt2') -FailOnCount 37 6>$null
-        $r.FindingCount | Should -Be 36
+        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt2') -FailOnCount 40 6>$null
+        $r.FindingCount | Should -Be 39
     }
 
     It 'throws when findings at severity reach the threshold' {
@@ -190,12 +190,12 @@ Describe 'FailOnCount' {
 
     It 'passes when findings at severity are below the threshold' {
         $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt4') -FailOnSeverity high -FailOnCount 20 6>$null
-        $r.FindingCount | Should -Be 36
+        $r.FindingCount | Should -Be 39
     }
 
     It 'passes when no finding reaches the severity' {
         $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt5') -FailOnSeverity critical -FailOnCount 1 6>$null
-        $r.FindingCount | Should -Be 36
+        $r.FindingCount | Should -Be 39
     }
 
     It 'rejects zero threshold' {
@@ -208,7 +208,7 @@ Describe 'FailOnCount' {
 
     It 'works with info severity (counts all)' {
         $out = Join-Path $script:Work 'cnt8'
-        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity info -FailOnCount 36 6>$null } | Should -Throw '*severity info or worse*Threshold: 36*'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity info -FailOnCount 39 6>$null } | Should -Throw '*severity info or worse*Threshold: 39*'
         Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
     }
 
@@ -218,7 +218,7 @@ Describe 'FailOnCount' {
 }
 ```
 
-- All tests use the demo inventory (36 findings, 15 high; per `README.md` and `data/demo-inventory.json`).
+- All tests use the demo inventory (39 findings, 18 high; measured with `Invoke-Quorum -Demo` on `data/demo-inventory.json`).
 - `6>$null` suppresses information stream (Write-Host) for clean test output.
 - The throw-on-threshold tests verify the report file exists; the validation tests throw before a report is written.
 - A help-text verification test covers criterion 9 (AC #9).
@@ -237,9 +237,9 @@ Describe 'FailOnCount' {
 ```powershell
 Invoke-Quorum -Demo -FailOnSeverity high      # throws: the demo has high findings
 Invoke-Quorum -Demo -FailOnSeverity critical  # passes
-Invoke-Quorum -Demo -FailOnCount 36           # throws: demo has 36 total findings
-Invoke-Quorum -Demo -FailOnCount 37           # passes
-Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10  # throws: 15 high >= 10
+Invoke-Quorum -Demo -FailOnCount 39           # throws: demo has 39 total findings
+Invoke-Quorum -Demo -FailOnCount 40           # passes
+Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10  # throws: 18 high >= 10
 Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 20  # passes
 ```
 ```
@@ -260,10 +260,17 @@ Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 20  # passes
 
 1. Run `Invoke-Pester ./tests` — all tests pass.
 2. Manual demo runs:
-   - `Invoke-Quorum -Demo -FailOnCount 36` → throws, report exists
-   - `Invoke-Quorum -Demo -FailOnCount 37` → returns, no throw
+   - `Invoke-Quorum -Demo -FailOnCount 39` → throws, report exists
+   - `Invoke-Quorum -Demo -FailOnCount 40` → returns, no throw
    - `Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10` → throws
    - `Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 20` → returns
 3. `Get-Help Invoke-Quorum -Parameter FailOnCount` shows correct help.
 4. README renders correctly on GitHub (no stray fences).
 5. No new analyzer warnings (`Invoke-ScriptAnalyzer`).
+## Spec amendment (2026-11-03, after implementation)
+
+The demo numbers above were first taken from `README.md` (36 findings, 15 high). That text predates rule Q013:
+the current demo run (`Invoke-Quorum -Demo`, verified with Pester on this branch) writes 39 findings, 18 of them high.
+All thresholds and expected counts in this spec were updated to 39/40 and 18. The mechanism, parameters and
+acceptance criteria are unchanged. The ROADMAP row text ("above and below 36") is quoted verbatim and left as is.
+The README hero image alt text still describes the older 36-finding screenshot; refreshing it is out of scope.

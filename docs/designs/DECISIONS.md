@@ -16,3 +16,10 @@
 - **Consciously contested (not fixed):**
   - `[ValidateRange(1, [int]::MaxValue)]` unverified concern — the pattern is valid PowerShell; changed to literal for clarity only.
   - "Placed after `-FailOnSeverity` would split URI parameter group" — parameter placement is a maintainer judgment call; named binding makes it harmless.
+## 2026-11-03: Spec drift fixed for `-FailOnCount`
+
+**Design:** [2026-11-03-failoncount-mindestanzahl-an-findings-al.md](2026-11-03-failoncount-mindestanzahl-an-findings-al.md)
+
+- The fresh diff reviewer rejected the first diff because tests used 39/18 while the spec said 36/15.
+- Measured demo output is 39 findings, 18 high (rule Q013 added findings after the README text was written), so the spec was wrong, not the code.
+- Spec numbers amended to the measured values; mechanism and acceptance criteria unchanged. Lesson: derive demo counts from a run, not from README prose.
