@@ -43,6 +43,64 @@ function Protect-QuorumReport {
     return ,$ordered
 }
 
+function Protect-QuorumIdentity {
+    param($Findings, $Notes)
+    $bag = @{}
+    foreach ($finding in @($Findings)) {
+        Add-QuorumSecret $bag (Get-QuorumProperty $finding 'UserPrincipalName') 'user'
+    }
+    if ($bag.Count -eq 0) { return ,@() }
+
+    $salt = New-Object byte[] 16
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($salt) } finally { $rng.Dispose() }
+
+    $entries = New-Object System.Collections.Generic.List[object]
+    $lookup = @{}
+    foreach ($item in @($bag.Values)) {
+        $token = New-QuorumPseudonym -Salt $salt -Value $item.Lookup -Kind $item.Kind
+        $lookup[$item.Lookup] = $token
+        $entries.Add([ordered]@{
+            kind     = $item.Kind
+            original = $item.Value
+            token    = $token
+        })
+    }
+    $ordered = @($entries | Sort-Object { $_.original.Length } -Descending)
+    $parts = New-Object System.Collections.Generic.List[string]
+    foreach ($entry in $ordered) { $parts.Add([regex]::Escape([string]$entry.original)) }
+    $plan = @{
+        Pattern = ($parts -join '|')
+        Map     = $lookup
+    }
+    foreach ($finding in @($Findings)) {
+        Update-QuorumIdentitySecretValue -Finding $finding -Plan $plan | Out-Null
+    }
+    if ($null -ne $Notes) {
+        for ($i = 0; $i -lt $Notes.Count; $i++) {
+            $Notes[$i] = Update-QuorumSecretString $Notes[$i] $plan
+        }
+    }
+    return ,$ordered
+}
+
+function Update-QuorumIdentitySecretValue {
+    param($Finding, $Plan)
+    foreach ($prop in @($Finding.PSObject.Properties)) {
+        $value = $prop.Value
+        if ($value -is [string]) {
+            $prop.Value = Update-QuorumSecretString $value $Plan
+            continue
+        }
+        if ($value -is [System.Collections.IList]) {
+            for ($i = 0; $i -lt $value.Count; $i++) {
+                if ($value[$i] -is [string]) { $value[$i] = Update-QuorumSecretString $value[$i] $Plan }
+            }
+        }
+    }
+    return $Finding
+}
+
 function Add-QuorumIdentitySecret {
     param($Model, $Bag)
     foreach ($device in @($Model['devices'])) {

@@ -11,12 +11,14 @@ Describe 'Module identity' {
         $manifest.PowerShellVersion | Should -Be ([version]'5.1')
     }
 
-    It 'imports as Quorum and exports only Invoke-Quorum and Test-QuorumRule' {
+    It 'imports as Quorum and exports only Invoke-Quorum, Test-QuorumRule, and Invoke-QuorumIdentityCheck' {
         $script:ImportedModule.Name | Should -BeExactly 'Quorum'
-        @($script:ImportedModule.ExportedCommands.Keys).Count | Should -Be 2
+        @($script:ImportedModule.ExportedCommands.Keys).Count | Should -Be 3
         $script:ImportedModule.ExportedCommands.ContainsKey('Invoke-Quorum') |
             Should -BeTrue
         $script:ImportedModule.ExportedCommands.ContainsKey('Test-QuorumRule') |
+            Should -BeTrue
+        $script:ImportedModule.ExportedCommands.ContainsKey('Invoke-QuorumIdentityCheck') |
             Should -BeTrue
     }
 
@@ -28,8 +30,10 @@ Describe 'Module identity' {
             $module.Name | Should -BeExactly 'Quorum'
             $module.ModuleBase |
                 Should -Be (Split-Path -Parent $script:ManifestPath)
-            @($module.ExportedCommands.Keys).Count | Should -Be 2
+            @($module.ExportedCommands.Keys).Count | Should -Be 3
             $module.ExportedCommands.ContainsKey('Invoke-Quorum') |
+                Should -BeTrue
+            $module.ExportedCommands.ContainsKey('Invoke-QuorumIdentityCheck') |
                 Should -BeTrue
         }
         finally {
