@@ -1,0 +1,27 @@
+id: Q013
+title: Dynamic group or administrative unit uses memberOf
+severity: high
+enabled: true
+subject: directoryObject
+description: >
+  A dynamic group or dynamic administrative unit has a membership rule
+  with the memberOf operator (user.memberof or device.memberof).
+whyItMatters: >
+  Microsoft retires memberOf in dynamic membership rules. After
+  3 November 2026, groups and administrative units that use it stop
+  updating and keep their last known members. Conditional Access,
+  Intune assignments, licenses, and delegated admin scopes that target
+  the object no longer follow the source groups.
+remediation: >
+  Rewrite the rule on user or device attributes, or replace the object
+  with an assigned group that a lifecycle process maintains. Check what
+  targets the object before you change it. Microsoft Learn: Group
+  membership in a dynamic group (memberOf), groups-dynamic-rule-member-of.
+condition:
+  all:
+    - fact: directory.dynamic
+      op: eq
+      value: true
+    - fact: directory.usesMemberOf
+      op: eq
+      value: true
