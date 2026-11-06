@@ -12,8 +12,10 @@
     AliasesToExport   = @()
     PrivateData       = @{
         PSData = @{
-            Tags       = @('Security', 'Intune', 'Entra', 'Defender', 'Quorum')
-            LicenseUri = 'https://opensource.org/licenses/MIT'
+            Tags         = @('Security', 'Intune', 'Entra', 'EntraID', 'Defender', 'MDE', 'Endpoint', 'Inventory', 'Compliance', 'ReadOnly', 'Quorum')
+            ProjectUri   = 'https://github.com/Abbasi26/endpoint-quorum'
+            LicenseUri   = 'https://github.com/Abbasi26/endpoint-quorum/blob/main/LICENSE'
+            ReleaseNotes = 'https://github.com/Abbasi26/endpoint-quorum/blob/main/CHANGELOG.md'
         }
     }
 }
