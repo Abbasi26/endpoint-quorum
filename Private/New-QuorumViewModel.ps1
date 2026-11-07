@@ -9,7 +9,9 @@ function New-QuorumViewModel {
         [datetime]$AsOf,
         [string]$Mode,
         [string]$TenantLabel,
-        [bool]$Redacted
+        [bool]$Redacted,
+        [Parameter()]
+        $BaselineFinding
     )
 
     $devices = @($Device | Sort-Object HostnameDisplay, Id)
@@ -19,18 +21,65 @@ function New-QuorumViewModel {
     $deviceIndex = @{}
     foreach ($one in $devices) {
         $view = ConvertTo-QuorumDeviceView -Device $one -AsOf $AsOf
-        $deviceViews.Add($view)
+        [void]$deviceViews.Add($view)
         $deviceIndex[$view['id']] = $view
     }
 
     $findingViews = New-Object System.Collections.Generic.List[object]
     foreach ($one in $findings) {
         $view = ConvertTo-QuorumFindingView $one
-        $findingViews.Add($view)
+        [void]$findingViews.Add($view)
         foreach ($id in @($view['quorumIds'])) {
             if ($deviceIndex.ContainsKey($id)) {
-                $deviceIndex[$id]['findingRuleIds'].Add([string]$view['ruleId'])
+                [void]$deviceIndex[$id]['findingRuleIds'].Add([string]$view['ruleId'])
             }
+        }
+    }
+
+    # Compute baseline comparison if BaselineFinding provided
+    $comparison = $null
+    if ($BaselineFinding -and $BaselineFinding.Count -gt 0) {
+        function Get-QuorumFindingKey {
+            param($Finding)
+            $ids = @($Finding.quorumIds) | Sort-Object
+            return ($Finding.ruleId + '|' + ($ids -join ','))
+        }
+        [void](Get-QuorumFindingKey @())  # suppress function definition output
+
+        $baselineKeys = @($BaselineFinding | ForEach-Object { Get-QuorumFindingKey $_ })
+        $baselineSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($k in $baselineKeys) { [void]$baselineSet.Add($k) }
+
+        $currentKeys = @($findingViews | ForEach-Object { Get-QuorumFindingKey $_ })
+        $currentSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($k in $currentKeys) { [void]$currentSet.Add($k) }
+
+        $newKeys = [System.Collections.Generic.List[string]]::new()
+        $resolvedKeys = [System.Collections.Generic.List[string]]::new()
+        $unchangedKeys = [System.Collections.Generic.List[string]]::new()
+
+        foreach ($k in $currentKeys) {
+            if ($baselineSet.Contains($k)) { [void]$unchangedKeys.Add($k) }
+            else { [void]$newKeys.Add($k) }
+        }
+        foreach ($k in $baselineKeys) {
+            if (-not $currentSet.Contains($k)) { [void]$resolvedKeys.Add($k) }
+        }
+
+        # Tag each finding view with comparisonState
+        foreach ($view in $findingViews) {
+            $key = Get-QuorumFindingKey $view
+            if ($baselineSet.Contains($key)) { $view['comparisonState'] = 'Unchanged' }
+            else { $view['comparisonState'] = 'New' }
+        }
+
+        $comparison = [ordered]@{
+            newCount      = $newKeys.Count
+            resolvedCount = $resolvedKeys.Count
+            unchangedCount = $unchangedKeys.Count
+            newKeys       = $newKeys.ToArray()
+            resolvedKeys  = $resolvedKeys.ToArray()
+            unchangedKeys = $unchangedKeys.ToArray()
         }
     }
 
@@ -74,19 +123,21 @@ function New-QuorumViewModel {
         })
     }
 
+    $meta = [ordered]@{
+        version      = (Get-QuorumVersion)
+        mode         = $Mode
+        generatedAt  = (ConvertTo-QuorumTimestamp $generated)
+        asOf         = (ConvertTo-QuorumTimestamp $AsOf)
+        redacted     = [bool]$Redacted
+        deviceCount  = $deviceViews.Count
+        findingCount = $ranked.Count
+        clearCount   = $clear
+        tenantLabel  = $TenantLabel
+        note         = $note
+    }
+    if ($comparison) { $null = $meta['comparison'] = $comparison }
     [ordered]@{
-        meta = [ordered]@{
-            version      = (Get-QuorumVersion)
-            mode         = $Mode
-            generatedAt  = (ConvertTo-QuorumTimestamp $generated)
-            asOf         = (ConvertTo-QuorumTimestamp $AsOf)
-            redacted     = [bool]$Redacted
-            deviceCount  = $deviceViews.Count
-            findingCount = $ranked.Count
-            clearCount   = $clear
-            tenantLabel  = $TenantLabel
-            note         = $note
-        }
+        meta = $meta
         collectors = $collectorViews.ToArray()
         rules      = $ruleViews.ToArray()
         findings   = @($ranked)
