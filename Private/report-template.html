@@ -285,6 +285,12 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
           <button class="tab" id="tab-devices" type="button">Devices</button>
         </div>
         <input class="search" id="q" type="search" placeholder="Search host, rule, evidence" aria-label="Search the report">
+        <select id="cmp-filter" class="ghost" aria-label="Comparison filter" style="display:none;">
+          <option value="all">All findings</option>
+          <option value="new">New</option>
+          <option value="resolved">Resolved</option>
+          <option value="unchanged">Unchanged</option>
+        </select>
       </div>
     </div>
     <div class="sevs" id="sevs"></div>
@@ -299,7 +305,7 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
   var data = JSON.parse(document.getElementById("quorum-data").textContent);
   var byId = {};
   data.devices.forEach(function (d) { byId[d.id] = d; });
-  var state = { tab: "findings", severity: "all", rule: "all", query: "", open: {} };
+  var state = { tab: "findings", severity: "all", rule: "all", query: "", open: {}, comparison: "all" };
 
   var sevOrder = ["critical", "high", "medium", "low", "info"];
   function h(tag, attrs, kids) {
@@ -335,6 +341,7 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
     return data.findings.filter(function (f) {
       if (state.severity !== "all" && f.severity !== state.severity) return false;
       if (state.rule !== "all" && f.ruleId !== state.rule) return false;
+      if (state.comparison !== "all" && f.comparisonState !== state.comparison) return false;
       if (!q) return true;
       var ev = (f.evidence || []).map(function (e) { return e.label + " " + e.value; }).join(" ");
       return matchText([f.hostname, f.ruleId, f.title, f.description, ev]).indexOf(q) >= 0;
@@ -439,6 +446,14 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
         h("div", { class: "l", text: pair[0] })
       ]));
     });
+    if (meta.comparison) {
+      [["New", meta.comparison.newCount], ["Resolved", meta.comparison.resolvedCount], ["Unchanged", meta.comparison.unchangedCount]].forEach(function (pair) {
+        stats.appendChild(h("div", { class: "stat" }, [
+          h("div", { class: "n", text: pair[1] }),
+          h("div", { class: "l", text: pair[0] })
+        ]));
+      });
+    }
 
     var counts = ruleCounts();
     var list = document.getElementById("rule-list");
@@ -577,6 +592,15 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
     document.getElementById("view-title").textContent = state.tab === "findings" ? "Findings" : "Devices";
     document.getElementById("lede").textContent = data.meta.note;
     document.getElementById("foot").textContent = "Quorum " + data.meta.version + ". Read-only. No telemetry. This page does not call a network.";
+    
+    // Show/hide comparison filter based on whether comparison data exists
+    var cmpFilter = document.getElementById("cmp-filter");
+    if (data.meta.comparison) {
+      cmpFilter.style.display = "inline-block";
+    } else {
+      cmpFilter.style.display = "none";
+    }
+    
     renderSide();
     renderSevs();
     renderBanner();
@@ -586,6 +610,7 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
   document.getElementById("tab-findings").addEventListener("click", function () { state.tab = "findings"; draw(); });
   document.getElementById("tab-devices").addEventListener("click", function () { state.tab = "devices"; draw(); });
   document.getElementById("q").addEventListener("input", function (event) { state.query = event.target.value; draw(); });
+  document.getElementById("cmp-filter").addEventListener("change", function (e) { state.comparison = e.target.value; draw(); });
   draw();
 })();
 </script>
