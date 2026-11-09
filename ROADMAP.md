@@ -22,7 +22,7 @@ Small, self-contained, and each one comes with an obvious test.
 | Idea | Where to start | Test |
 | --- | --- | --- |
 | `Test-QuorumRule` warns when a rule has no `remediation` longer than one sentence | `Public/Test-QuorumRule.ps1` | new case in `tests/V02Features.Tests.ps1` |
-| `-FailOnSeverity` also accepts a minimum finding count (`-FailOnCount`) | `Public/Invoke-Quorum.ps1` | demo run with a threshold above and below 36 |
+| `-FailOnSeverity` also accepts a minimum finding count (`-FailOnCount`) | `Public/Invoke-Quorum.ps1` | demo run with a threshold above and below 36 ✅ |
 | Starter rule: Entra device disabled but still compliant in Intune | `rules/` | `Invoke-Quorum -Demo -RulesPath` plus `Test-QuorumRule` |
 | Accept a gzip-compressed export (`.json.gz`) in the offline import | `Read-QuorumExportFile` | round-trip of `data/demo-inventory.json` |
 | Add a `-Format` switch that writes only the JSON findings (for automation) | `Private/New-QuorumReport.ps1` | file list in the output folder |

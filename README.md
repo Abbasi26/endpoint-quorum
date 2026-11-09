@@ -85,9 +85,15 @@ Both files can be combined with the device exports, or put into an inventory fil
 
 `-FailOnSeverity` writes the report first and then throws if any finding is at that severity or worse. The result object also carries `HighestSeverity`.
 
+`-FailOnCount` fails the run when the finding count reaches this threshold. With `-FailOnSeverity` it counts only findings at that severity or worse; alone it counts all findings.
+
 ```powershell
-Invoke-Quorum -Demo -FailOnSeverity high      # throws: the demo has high findings
-Invoke-Quorum -Demo -FailOnSeverity critical  # passes
+Invoke-Quorum -Demo -FailOnSeverity high       # throws: the demo has 18 high findings
+Invoke-Quorum -Demo -FailOnSeverity critical   # passes
+Invoke-Quorum -Demo -FailOnCount 39            # throws: demo has 39 total findings
+Invoke-Quorum -Demo -FailOnCount 40            # passes
+Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10  # throws: 18 high >= 10
+Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 20  # passes
 ```
 
 ## Live, read-only collection
