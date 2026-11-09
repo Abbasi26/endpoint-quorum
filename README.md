@@ -15,6 +15,7 @@
 # Quorum
 
 [![CI](https://github.com/Abbasi26/endpoint-quorum/actions/workflows/ci.yml/badge.svg)](https://github.com/Abbasi26/endpoint-quorum/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Quorum reads Intune, Entra ID, and Defender for Endpoint and reports the contradictions between them.
 
