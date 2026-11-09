@@ -2140,5 +2140,65 @@
       "onboardingStatus": "Onboarded",
       "lastIpAddress": "198.51.100.60"
     }
+  ],
+  "groups": [
+    {
+      "id": "5d0c1a2e-0000-4000-8000-00000000a001",
+      "displayName": "DYN-Example-Finance-Laptops",
+      "groupTypes": [
+        "DynamicMembership"
+      ],
+      "membershipRule": "device.memberof -any (group.objectId -in ['5d0c1a2e-0000-4000-8000-00000000a101'])",
+      "membershipRuleProcessingState": "On"
+    },
+    {
+      "id": "5d0c1a2e-0000-4000-8000-00000000a002",
+      "displayName": "DYN-Example-All-Windows",
+      "groupTypes": [
+        "DynamicMembership"
+      ],
+      "membershipRule": "(device.deviceOSType -eq \"Windows\")",
+      "membershipRuleProcessingState": "On"
+    },
+    {
+      "id": "5d0c1a2e-0000-4000-8000-00000000a003",
+      "displayName": "Example-Pilot-Ring (assigned)",
+      "groupTypes": [],
+      "membershipRule": null,
+      "membershipRuleProcessingState": null
+    },
+    {
+      "id": "5d0c1a2e-0000-4000-8000-00000000a004",
+      "displayName": "DYN-Example-Contractors-MFA",
+      "groupTypes": [
+        "DynamicMembership",
+        "Unified"
+      ],
+      "membershipRule": "user.memberOf -any (group.objectId -in ['5d0c1a2e-0000-4000-8000-00000000a102','5d0c1a2e-0000-4000-8000-00000000a103'])",
+      "membershipRuleProcessingState": "Paused"
+    }
+  ],
+  "administrativeUnits": [
+    {
+      "id": "7e1f2b3c-0000-4000-8000-00000000b001",
+      "displayName": "AU-Example-Branch-North",
+      "membershipType": "Dynamic",
+      "membershipRule": "user.memberof -any (group.objectId -in ['5d0c1a2e-0000-4000-8000-00000000a104'])",
+      "membershipRuleProcessingState": "On"
+    },
+    {
+      "id": "7e1f2b3c-0000-4000-8000-00000000b002",
+      "displayName": "AU-Example-Branch-South",
+      "membershipType": "Dynamic",
+      "membershipRule": "(user.department -eq \"Example South\")",
+      "membershipRuleProcessingState": "On"
+    },
+    {
+      "id": "7e1f2b3c-0000-4000-8000-00000000b003",
+      "displayName": "AU-Example-Helpdesk",
+      "membershipType": "Assigned",
+      "membershipRule": null,
+      "membershipRuleProcessingState": null
+    }
   ]
 }

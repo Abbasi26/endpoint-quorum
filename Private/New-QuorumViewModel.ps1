@@ -242,6 +242,11 @@ function Get-QuorumFactLabel {
         'quorum.ids'                = 'Quorum ids'
         'device.count'              = 'Device count'
         'hostname.names'            = 'Hostnames'
+        'directory.kind'            = 'Directory object'
+        'directory.membershipRule'  = 'Membership rule'
+        'directory.processingState' = 'Rule processing'
+        'directory.dynamic'         = 'Dynamic membership'
+        'directory.usesMemberOf'    = 'Uses memberOf'
     }
     if ($labels.ContainsKey($Key)) { return $labels[$Key] }
     return $Key
