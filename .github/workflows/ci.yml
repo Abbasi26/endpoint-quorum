@@ -32,6 +32,10 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install PowerShell 7.6 LTS
+        uses: $/.github/actions/install-pwsh-7-6
+        if: matrix.shell == 'pwsh'
+
       - name: Install Pester 5
         run: |
           $ErrorActionPreference = 'Stop'
