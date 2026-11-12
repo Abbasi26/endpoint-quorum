@@ -33,7 +33,7 @@ Microsoft365DSC, Maester, CIPP, the Intune and Entra built-in reports, and Condi
 
 ## Try it in a minute
 
-Requires [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) (Windows PowerShell 5.1 works for the same commands). From this directory:
+Requires [PowerShell 7.6 (LTS) or 7.7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell); Windows PowerShell 5.1 works for the same commands. PowerShell 7.4 and 7.5 are out of support since 10 November 2026 and are no longer tested. From this directory:
 
 ```powershell
 Import-Module ./Quorum.psd1
@@ -247,7 +247,7 @@ Invoke-Pester ./tests
 
 The tests cover matching, the rule files, collector normalization, and redaction. They use the demo inventory and small in-memory records. They do not sign in.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs that suite on `ubuntu-latest` with PowerShell 7.6 LTS, and on `windows-latest` with PowerShell 7.6 LTS and Windows PowerShell 5.1.
+GitHub Actions (`.github/workflows/ci.yml`) runs that suite on `ubuntu-latest` with PowerShell 7.6 LTS and 7.7, and on `windows-latest` with PowerShell 7.6 LTS, 7.7, and Windows PowerShell 5.1.
 
 ## Security and privacy
 

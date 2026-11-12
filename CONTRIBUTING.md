@@ -42,5 +42,5 @@ Wire the collector into `Invoke-Quorum` only after the normalizer and a matching
 ## Before you open a pull request
 
 - `Invoke-Quorum -Demo` finishes and writes HTML, Markdown, CSV, and JSON.
-- `Invoke-Pester ./tests` passes in PowerShell 7.6 LTS.
+- `Invoke-Pester ./tests` passes in PowerShell 7.6 LTS and 7.7, and in Windows PowerShell 5.1.
 - If you touched matching, rules, or redaction, the new behavior has a test that does not call the network.
