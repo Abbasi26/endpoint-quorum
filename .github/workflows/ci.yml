@@ -51,7 +51,7 @@ jobs:
           persist-credentials: false
 
       - name: Install PowerShell ${{ matrix.pwsh }}
-        uses: ./.github/actions/install-pwsh
+        uses: $/.github/actions/install-pwsh
         if: matrix.shell == 'pwsh'
         with:
           version: ${{ matrix.pwsh }}
