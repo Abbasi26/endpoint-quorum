@@ -6,7 +6,7 @@
 - Rule Q013 flags dynamic groups and dynamic administrative units whose membership rule uses `memberOf`. Microsoft stopped updating them on 3 November 2026 ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of)).
 - Rules can set `subject: directoryObject` to evaluate groups and administrative units with the new `directory.*` facts. `Test-QuorumRule` checks the facts against the subject.
 - Offline import reads `-GroupPath` and `-AdministrativeUnitPath`, or `groups` and `administrativeUnits` in an inventory file. The demo inventory has fictional examples.
-- CI: PowerShell 7.6 LTS (7.6.9, SHA-256 pinned) via `.github/actions/install-pwsh-7-6`; PowerShell 7.4 and 7.5 reach end of support on 10 Nov 2026 ([support lifecycle](https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle)). Windows PowerShell 5.1 unchanged.
+- CI: Pester runs on PowerShell 7.6 LTS (7.6.10) and 7.7 (7.7.0) on Linux and Windows, plus Windows PowerShell 5.1. Both releases are SHA-256 pinned via `.github/actions/install-pwsh`. PowerShell 7.4 and 7.5 reached end of support on 10 Nov 2026 ([support lifecycle](https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle)) and are no longer tested. Supported: Windows PowerShell 5.1, PowerShell 7.6 (LTS), PowerShell 7.7.
 
 ## 0.2.0 - 2026-10-28
 

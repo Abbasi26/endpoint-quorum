@@ -18,12 +18,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ubuntu pwsh
+          - name: ubuntu pwsh 7.6 LTS
             os: ubuntu-latest
             shell: pwsh
-          - name: windows pwsh
+            pwsh: '7.6.10'
+            sha256-linux: e261cabc91c78a9afe8d1e5f24731ab0d38204735ab2ec94b0af55102652e10d
+            sha256-windows: 7d871531806eb1646264e4bbabd9f0c30c23355591bc756bb9909448c29ae166
+          - name: ubuntu pwsh 7.7
+            os: ubuntu-latest
+            shell: pwsh
+            pwsh: '7.7.0'
+            sha256-linux: c89d9c682d2c403dfe726f3df948e359675235a5bd6fab535776de69729ca0cb
+            sha256-windows: 7c74e03b20a75b59715847439d046a6214b1863ee79b187872980f139bb4a05f
+          - name: windows pwsh 7.6 LTS
             os: windows-latest
             shell: pwsh
+            pwsh: '7.6.10'
+            sha256-linux: e261cabc91c78a9afe8d1e5f24731ab0d38204735ab2ec94b0af55102652e10d
+            sha256-windows: 7d871531806eb1646264e4bbabd9f0c30c23355591bc756bb9909448c29ae166
+          - name: windows pwsh 7.7
+            os: windows-latest
+            shell: pwsh
+            pwsh: '7.7.0'
+            sha256-linux: c89d9c682d2c403dfe726f3df948e359675235a5bd6fab535776de69729ca0cb
+            sha256-windows: 7c74e03b20a75b59715847439d046a6214b1863ee79b187872980f139bb4a05f
           - name: windows powershell 5.1
             os: windows-latest
             shell: powershell
@@ -32,9 +50,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install PowerShell 7.6 LTS
-        uses: $/.github/actions/install-pwsh-7-6
+      - name: Install PowerShell ${{ matrix.pwsh }}
+        uses: ./.github/actions/install-pwsh
         if: matrix.shell == 'pwsh'
+        with:
+          version: ${{ matrix.pwsh }}
+          sha256-linux: ${{ matrix.sha256-linux }}
+          sha256-windows: ${{ matrix.sha256-windows }}
 
       - name: Install Pester 5
         run: |
