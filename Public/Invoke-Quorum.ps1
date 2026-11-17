@@ -335,10 +335,32 @@ function Invoke-Quorum {
     return $result
 }
 
+function Read-QuorumExportText {
+    # Reads an export as text. A gzip file (magic bytes 1F 8B, for example export.json.gz)
+    # is decompressed first, whatever its extension. Encoding is detected from a BOM, else UTF-8.
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -ge 2 -and $bytes[0] -eq 0x1F -and $bytes[1] -eq 0x8B) {
+        $compressed = New-Object System.IO.MemoryStream(, $bytes)
+        $gzip = New-Object System.IO.Compression.GZipStream($compressed, [System.IO.Compression.CompressionMode]::Decompress)
+        $output = New-Object System.IO.MemoryStream
+        try { $gzip.CopyTo($output) }
+        catch { throw "Export file $Path looks like gzip but cannot be decompressed: $(Get-QuorumErrorMessage $_)" }
+        finally { $gzip.Dispose(); $compressed.Dispose() }
+        $bytes = $output.ToArray()
+        $output.Dispose()
+        if ($bytes.Length -eq 0) { throw "Export file $Path looks like gzip but decompresses to nothing (truncated or empty archive)." }
+    }
+    $stream = New-Object System.IO.MemoryStream(, $bytes)
+    $reader = New-Object System.IO.StreamReader($stream, (New-Object System.Text.UTF8Encoding($false)), $true)
+    try { return $reader.ReadToEnd() }
+    finally { $reader.Dispose() }
+}
+
 function Read-QuorumExportFile {
     param([Parameter(Mandatory = $true)][string]$Path)
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Export file not found: $Path" }
-    $text = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $Path).ProviderPath)
+    $text = Read-QuorumExportText -Path (Resolve-Path -LiteralPath $Path).ProviderPath
     try { $parsed = ConvertFrom-Json -InputObject $text }
     catch { throw "Export file $Path is not valid JSON: $(Get-QuorumErrorMessage $_)" }
     # Keep one-element and empty arrays as arrays on every PowerShell version.

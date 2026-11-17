@@ -67,7 +67,7 @@ No app registration yet? Export the three inventories once (Graph Explorer, an e
 Invoke-Quorum -IntunePath .\managedDevices.json -EntraPath .\devices.json -DefenderPath .\machines.json -Redact
 ```
 
-Each file can be a plain JSON array or a raw API page with a `value` array, so you can save the response as it is. Leave a source out and the report marks it as not provided. For one combined file in the shape of `data/demo-inventory.json`, use `-InventoryPath`. `-AsOf` sets the reference time for the age facts (default: the inventory `asOf`, or now).
+Each file can be a plain JSON array or a raw API page with a `value` array, so you can save the response as it is. Leave a source out and the report marks it as not provided. For one combined file in the shape of `data/demo-inventory.json`, use `-InventoryPath`. Every import path also accepts a gzip-compressed file (for example `managedDevices.json.gz`); Quorum recognises gzip by its content, not by the file name. `-AsOf` sets the reference time for the age facts (default: the inventory `asOf`, or now).
 
 ### Dynamic groups and administrative units (memberOf)
 

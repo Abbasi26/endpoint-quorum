@@ -63,6 +63,39 @@ Describe 'Offline import' {
         $r.DeviceCount | Should -Be 1
     }
 
+    It 'reads a gzip-compressed export (.json.gz) like the plain file' {
+        $plain = Join-Path $script:ModuleRoot 'data/demo-inventory.json'
+        $gz = Join-Path $script:Work 'demo-inventory.json.gz'
+        $source = [System.IO.File]::OpenRead($plain)
+        $target = [System.IO.File]::Create($gz)
+        $zip = New-Object System.IO.Compression.GZipStream($target, [System.IO.Compression.CompressionMode]::Compress)
+        try { $source.CopyTo($zip) } finally { $zip.Dispose(); $target.Dispose(); $source.Dispose() }
+        $bytes = [System.IO.File]::ReadAllBytes($gz)
+        $bytes[0] | Should -Be 0x1F
+        $r = Invoke-Quorum -InventoryPath $gz -OutputPath (Join-Path $script:Work 'gz') 6>$null
+        $p = Invoke-Quorum -InventoryPath $plain -OutputPath (Join-Path $script:Work 'gz-plain') 6>$null
+        $r.Mode | Should -Be 'Import'
+        $r.DeviceCount | Should -Be $p.DeviceCount
+        $r.FindingCount | Should -Be $p.FindingCount
+    }
+
+    It 'detects gzip by content, not by extension, for per-source files' {
+        $json = ConvertTo-Json -InputObject @{ value = @($script:Demo.entra) } -Depth 20
+        $path = Join-Path $script:Work 'entra-compressed.json'
+        $target = [System.IO.File]::Create($path)
+        $zip = New-Object System.IO.Compression.GZipStream($target, [System.IO.Compression.CompressionMode]::Compress)
+        $writer = New-Object System.IO.StreamWriter($zip, (New-Object System.Text.UTF8Encoding($false)))
+        try { $writer.Write($json) } finally { $writer.Dispose(); $target.Dispose() }
+        $r = Invoke-Quorum -EntraPath $path -OutputPath (Join-Path $script:Work 'gz-entra') 6>$null
+        $r.DeviceCount | Should -Be @($script:Demo.entra).Count
+    }
+
+    It 'reports a truncated gzip export clearly' {
+        $path = Join-Path $script:Work 'broken.json.gz'
+        [System.IO.File]::WriteAllBytes($path, [byte[]](0x1F, 0x8B, 0x08, 0x00, 0x01, 0x02))
+        { Invoke-Quorum -IntunePath $path -OutputPath (Join-Path $script:Work 'gz-bad') 6>$null } | Should -Throw '*Export file*'
+    }
+
     It 'rejects a file that is neither an array nor a value page' {
         $bad = Write-TestJson 'bad.json' @{ devices = @() }
         { Invoke-Quorum -IntunePath $bad -OutputPath (Join-Path $script:Work 'bad') 6>$null } | Should -Throw '*value array*'
