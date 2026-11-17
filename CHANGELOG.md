@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Offline import reads gzip-compressed exports (`.json.gz`) for every `-*Path` parameter. Gzip is detected by its magic bytes; a truncated archive fails with a clear message.
 - `-FailOnCount` parameter for `Invoke-Quorum`: throws after the report is written when the finding count reaches a threshold. With `-FailOnSeverity` counts only findings at that severity or worse; alone counts all findings.
 - Rule Q013 flags dynamic groups and dynamic administrative units whose membership rule uses `memberOf`. Microsoft stopped updating them on 3 November 2026 ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of)).
 - Rules can set `subject: directoryObject` to evaluate groups and administrative units with the new `directory.*` facts. `Test-QuorumRule` checks the facts against the subject.
