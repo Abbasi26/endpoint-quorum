@@ -163,8 +163,8 @@ Describe 'Q017 and Q018 agent identities' {
 Describe 'Demo inventory for policy plans and Agent ID' {
     It 'reports the expected demo findings without changing the device count' {
         $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'demo') 6>$null
-        $r.DeviceCount | Should -Be 50
-        $r.FindingCount | Should -Be 45
+        $r.DeviceCount | Should -Be 51
+        $r.FindingCount | Should -Be 44
         @($r.Findings | Where-Object { $_['ruleId'] -eq 'Q013' }).Count | Should -Be 3
         $q014 = @($r.Findings | Where-Object { $_['ruleId'] -eq 'Q014' } | ForEach-Object { [string]$_['hostname'] } | Sort-Object)
         $q015 = @($r.Findings | Where-Object { $_['ruleId'] -eq 'Q015' } | ForEach-Object { [string]$_['hostname'] } | Sort-Object)

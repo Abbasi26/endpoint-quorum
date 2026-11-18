@@ -7,6 +7,7 @@ $script:QuorumKnownFacts = @(
     'defender.present', 'defender.healthStatus', 'defender.riskScore', 'defender.exposureLevel',
     'defender.onboardingStatus', 'defender.lastSeenAgeDays', 'defender.osBuild',
     'os.buildMismatch', 'os.builds', 'compliance.disagrees',
+    'device.class',
     'hostname.key', 'hostname.duplicate', 'hostname.duplicateCount',
     'match.method', 'match.confidence', 'match.score', 'sources.count'
 )

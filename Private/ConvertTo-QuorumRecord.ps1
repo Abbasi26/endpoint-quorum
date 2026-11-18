@@ -83,6 +83,17 @@ function ConvertTo-QuorumIntuneRecord {
         Add-QuorumAttribute $attrs 'Operating system' (Get-QuorumProperty $one 'operatingSystem') 'os'
         Add-QuorumAttribute $attrs 'OS version' $osVersion 'osVersion'
         Add-QuorumAttribute $attrs 'OS build' $build 'osBuild'
+        $skuNumber = Get-QuorumProperty $one 'skuNumber'
+        $skuName = Get-QuorumProperty $one 'operatingSystemSKU'
+        if ($null -eq $skuName -or ($skuName -is [string] -and [string]::IsNullOrWhiteSpace([string]$skuName))) {
+            $skuName = Get-QuorumProperty $one 'operatingSystemSku'
+        }
+        if ($null -ne $skuNumber -and -not ($skuNumber -is [string] -and [string]::IsNullOrWhiteSpace([string]$skuNumber))) {
+            Add-QuorumAttribute $attrs 'SKU number' $skuNumber 'skuNumber'
+        }
+        if ($null -ne $skuName -and -not ($skuName -is [string] -and [string]::IsNullOrWhiteSpace([string]$skuName))) {
+            Add-QuorumAttribute $attrs 'OS SKU' $skuName 'osSku'
+        }
         if ($null -ne $sync) { Add-QuorumAttribute $attrs 'Last sync' (ConvertTo-QuorumTimestamp $sync) 'lastSync' }
         Add-QuorumAttribute $attrs 'Owner' (ConvertTo-QuorumToken (Get-QuorumProperty $one 'managedDeviceOwnerType')) 'owner'
         Add-QuorumAttribute $attrs 'Enrollment' (Get-QuorumProperty $one 'deviceEnrollmentType') 'enrollment'

@@ -811,6 +811,26 @@
       "model": "Deskbook 14",
       "deviceEnrollmentType": "windowsAzureADJoin",
       "isEncrypted": true
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000051",
+      "deviceName": "winsrv-pilot-01",
+      "azureADDeviceId": "40000000-0000-4000-8000-000000000051",
+      "userPrincipalName": "mira.vale@lab.example",
+      "userDisplayName": "Mira Vale",
+      "complianceState": "compliant",
+      "osVersion": "10.0.29621.1000",
+      "operatingSystem": "Windows",
+      "skuNumber": 8,
+      "operatingSystemSKU": "ServerDatacenter",
+      "lastSyncDateTime": "2026-04-14T18:00:00Z",
+      "managedDeviceOwnerType": "company",
+      "managementAgent": "mdm",
+      "serialNumber": "SN-DEMO-0051",
+      "manufacturer": "Example OEM",
+      "model": "Lab Server 1U",
+      "deviceEnrollmentType": "windowsAzureADJoin",
+      "isEncrypted": true
     }
   ],
   "entra": [
@@ -1563,6 +1583,21 @@
       "registrationDateTime": "2025-11-02T08:00:00Z",
       "profileType": "RegisteredDevice",
       "deviceOwnership": "Company"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000051",
+      "deviceId": "40000000-0000-4000-8000-000000000051",
+      "displayName": "winsrv-pilot-01",
+      "accountEnabled": true,
+      "operatingSystem": "Windows Server",
+      "operatingSystemVersion": "10.0.29621.1000",
+      "trustType": "AzureAd",
+      "isManaged": true,
+      "isCompliant": true,
+      "approximateLastSignInDateTime": "2026-04-14T09:00:00Z",
+      "registrationDateTime": "2026-03-02T08:00:00Z",
+      "profileType": "RegisteredDevice",
+      "deviceOwnership": "Company"
     }
   ],
   "defender": [
@@ -2139,6 +2174,20 @@
       "exposureLevel": "Low",
       "onboardingStatus": "Onboarded",
       "lastIpAddress": "198.51.100.60"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000051",
+      "aadDeviceId": "40000000-0000-4000-8000-000000000051",
+      "computerDnsName": "winsrv-pilot-01",
+      "lastSeen": "2026-04-15T06:00:00Z",
+      "osPlatform": "Windows Server",
+      "osVersion": "10.0.29621.1000",
+      "osBuild": 29621,
+      "healthStatus": "Active",
+      "riskScore": "None",
+      "exposureLevel": "Low",
+      "onboardingStatus": "Onboarded",
+      "lastIpAddress": "203.0.113.51"
     }
   ],
   "groups": [
