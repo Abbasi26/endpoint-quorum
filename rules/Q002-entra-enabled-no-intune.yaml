@@ -3,7 +3,7 @@ title: Enabled Windows device in Entra with no Intune record
 severity: medium
 enabled: true
 description: >
-  The Entra device is enabled and reports a Windows operating system,
+  The Entra device is enabled and is classified as a Windows client,
   but Intune has no managed-device record for it.
 whyItMatters: >
   An enabled Entra device can still satisfy device-based Conditional Access
@@ -11,6 +11,9 @@ whyItMatters: >
 remediation: >
   Decide whether the device should be enrolled. If it is retired or personal,
   disable or delete the Entra object so it cannot be trusted by mistake.
+  Windows Server is a separate device class. Released Windows Server versions
+  cannot enroll in Intune; only eligible Windows Server Insider preview
+  builds can, in nonproduction environments.
 condition:
   all:
     - fact: entra.present
@@ -19,9 +22,9 @@ condition:
     - fact: entra.enabled
       op: eq
       value: true
-    - fact: entra.operatingSystem
-      op: contains
-      value: Windows
+    - fact: device.class
+      op: eq
+      value: windows
     - fact: intune.present
       op: eq
       value: false

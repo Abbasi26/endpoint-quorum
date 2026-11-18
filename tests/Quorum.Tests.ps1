@@ -207,6 +207,17 @@ condition:
         }
     }
 
+    It 'does not flag an enabled Windows Server device that Intune does not know' {
+        InModuleScope Quorum {
+            $entra = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e9' -Hostname 'unmanaged-server' -ObservedAt $global:QuorumRecent -AccountEnabled $true -OperatingSystem 'Windows Server' -OsBuild '20348'
+            $devices = (Merge-QuorumDevice -Record @($entra))
+            $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q002-entra-enabled-no-intune.yaml'))
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+            $findings.Count | Should -Be 0
+            (Get-QuorumDeviceClass -Device $devices[0]) | Should -Be 'windows-server'
+        }
+    }
+
     It 'flags an OS build mismatch and ignores a revision inside the same build' {
         InModuleScope Quorum {
             $id = '40000000-0000-4000-8000-0000000000e4'

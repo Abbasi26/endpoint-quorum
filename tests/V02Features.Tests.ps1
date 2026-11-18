@@ -133,13 +133,13 @@ Describe 'FailOnSeverity' {
 Describe 'FailOnCount' {
     It 'throws when total findings reach the threshold' {
         $out = Join-Path $script:Work 'cnt1'
-        { Invoke-Quorum -Demo -OutputPath $out -FailOnCount 39 6>$null } | Should -Throw '*total finding(s)*Threshold: 39*'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnCount 38 6>$null } | Should -Throw '*total finding(s)*Threshold: 38*'
         Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
     }
 
     It 'passes when total findings are below the threshold' {
-        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt2') -FailOnCount 40 6>$null
-        $r.FindingCount | Should -Be 39
+        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt2') -FailOnCount 39 6>$null
+        $r.FindingCount | Should -Be 38
     }
 
     It 'throws when findings at severity reach the threshold' {
@@ -150,12 +150,12 @@ Describe 'FailOnCount' {
 
     It 'passes when findings at severity are below the threshold' {
         $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt4') -FailOnSeverity high -FailOnCount 20 6>$null
-        $r.FindingCount | Should -Be 39
+        $r.FindingCount | Should -Be 38
     }
 
     It 'passes when no finding reaches the severity' {
         $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt5') -FailOnSeverity critical -FailOnCount 1 6>$null
-        $r.FindingCount | Should -Be 39
+        $r.FindingCount | Should -Be 38
     }
 
     It 'rejects zero threshold' {
@@ -168,7 +168,7 @@ Describe 'FailOnCount' {
 
     It 'works with info severity (counts all)' {
         $out = Join-Path $script:Work 'cnt8'
-        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity info -FailOnCount 39 6>$null } | Should -Throw '*severity info or worse*Threshold: 39*'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity info -FailOnCount 38 6>$null } | Should -Throw '*severity info or worse*Threshold: 38*'
         Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
     }
 

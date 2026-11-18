@@ -40,7 +40,7 @@ Import-Module ./Quorum.psd1
 Invoke-Quorum -Demo
 ```
 
-`-Demo` does not use the network. It evaluates the fictional inventory in `data/demo-inventory.json` (about 50 devices) and writes:
+`-Demo` does not use the network. It evaluates the fictional inventory in `data/demo-inventory.json` (51 fictional devices) and writes:
 
 | File | What it is |
 | --- | --- |
@@ -91,8 +91,8 @@ Both files can be combined with the device exports, or put into an inventory fil
 ```powershell
 Invoke-Quorum -Demo -FailOnSeverity high       # throws: the demo has 18 high findings
 Invoke-Quorum -Demo -FailOnSeverity critical   # passes
-Invoke-Quorum -Demo -FailOnCount 39            # throws: demo has 39 total findings
-Invoke-Quorum -Demo -FailOnCount 40            # passes
+Invoke-Quorum -Demo -FailOnCount 38            # throws: demo has 38 total findings
+Invoke-Quorum -Demo -FailOnCount 39            # passes
 Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10  # throws: 18 high >= 10
 Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 20  # passes
 ```
@@ -145,6 +145,18 @@ The token request itself asks for the two Graph delegated scopes in one device-c
 
 The HTML report shows the method and confidence on each device.
 
+## Windows Server as a device class
+
+Enrolled Windows Server devices appear under the Windows platform in Intune, alongside PCs. Quorum therefore does not treat Intune `operatingSystem` `Windows` as proof that a device is a client. It assigns `device.class` `windows-server` when any of these documented signals is present:
+
+- Intune `skuNumber` 7, 8, 79, 80, or 407, or the assignment-filter names `ServerStandard`, `ServerDatacenter`, `ServerStandardEval`, `ServerDatacenterEval`, or `ServerTurbine` ([filter properties](https://learn.microsoft.com/en-us/intune/fundamentals/filters/ref-device-properties), [preview guide](https://learn.microsoft.com/en-us/intune/solutions/end-to-end-guides/windows-server-endpoints-get-started)). `ServerRdsh` (175) is Windows 10/11 Enterprise multi-session and stays `windows`.
+- Entra `operatingSystem` equal to `Windows Server` ([Entra PowerShell](https://learn.microsoft.com/en-us/powershell/entra-powershell/manage-devices?view=entra-powershell)).
+- Defender `osPlatform` equal to `Windows Server`, or a compact value that starts with `WindowsServer` ([OS platform change](https://techcommunity.microsoft.com/blog/intunecustomersuccess/windows-server-devices-managed-by-defender-for-endpoint-now-recognized-as-a-new-/3767773)). The Defender machine resource does not publish a full `osPlatform` enumeration.
+
+Microsoft Intune can manage eligible Windows Server devices only as an Insider preview, for nonproduction testing, and only for Windows Server vNext builds 29621.1000 or later with Desktop Experience. Server enrollment is blocked by default. See [What's new in Microsoft Intune](https://learn.microsoft.com/en-us/intune/whats-new/) (week of 16 November 2026, service release 2611) and the [end-to-end preview guide](https://learn.microsoft.com/en-us/intune/solutions/end-to-end-guides/windows-server-endpoints-get-started). Graph `skuNumber` and `skuFamily` are documented on [managedDevice in Graph beta](https://learn.microsoft.com/en-us/graph/api/resources/intune-devices-manageddevice?view=graph-rest-beta); they are not listed on the v1.0 page. The live collector stays on v1.0 by default and reads those properties when the payload includes them (a beta export, or `-GraphBaseUri https://graph.microsoft.com/beta`). If Intune only reports `operatingSystem` `Windows` and no server SKU, the class stays `windows`.
+
+The demo inventory includes `winsrv-pilot-01`, an enrolled preview server, and `entra-only-04`, a released Windows Server 2022 object that has no Intune record.
+
 ## Rules
 
 Rules are YAML files in `rules/`. Each file needs:
@@ -182,6 +194,7 @@ Facts a rule can use:
 | `intune.lastSyncAgeDays`, `intune.osBuild` | Days since last sync, and the Windows build. |
 | `entra.enabled`, `entra.isCompliant`, `entra.isManaged` | Booleans from the directory object. |
 | `entra.operatingSystem`, `entra.trustType`, `entra.osBuild` | Normalized directory fields. |
+| `device.class` | Device class from all sources: `windows`, `windows-server`, `macos`, `ios`, `android`, `linux`, or `unknown`. |
 | `entra.lastSignInAgeDays` | Days since `approximateLastSignInDateTime`. Missing when Entra has no timestamp. |
 | `defender.healthStatus`, `defender.riskScore`, `defender.exposureLevel`, `defender.onboardingStatus` | Lower-case Defender values. |
 | `defender.lastSeenAgeDays`, `defender.osBuild` | Days since `lastSeen`, and the build. |
@@ -208,7 +221,7 @@ Ages are whole days before the collection time. In `-Demo`, that time is the `as
 | Id | Severity | What it catches |
 | --- | --- | --- |
 | Q001 | high | Intune says compliant, and Defender has not reported for more than 14 days. |
-| Q002 | medium | Entra device is enabled, looks like Windows, and Intune has no record. |
+| Q002 | medium | Entra device is enabled, is a Windows client, and Intune has no record. Windows Server is a separate class and does not match. |
 | Q003 | high | Intune has the device, and Defender has no record or it is not `onboarded`. |
 | Q004 | medium | Two sources report different OS build numbers. |
 | Q005 | medium | Entra device is still enabled and has no sign-in, or the sign-in is older than 90 days. |
@@ -245,7 +258,7 @@ Import-Module Pester -RequiredVersion 5.9.1
 Invoke-Pester ./tests
 ```
 
-The tests cover matching, the rule files, collector normalization, and redaction. They use the demo inventory and small in-memory records. They do not sign in.
+The suite has 73 Pester tests. They cover matching, the rule files, collector normalization, device classification, and redaction. They use the demo inventory and small in-memory records. They do not sign in.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs that suite on `ubuntu-latest` with PowerShell 7.6 LTS, and on `windows-latest` with PowerShell 7.6 LTS and Windows PowerShell 5.1.
 
