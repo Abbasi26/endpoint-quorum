@@ -2200,5 +2200,247 @@
       "membershipRule": null,
       "membershipRuleProcessingState": null
     }
+
+  ],
+  "conditionalAccessPlans": [
+    {
+      "@odata.type": "#microsoft.graph.conditionalAccessPolicyPlan",
+      "id": "c1a2b3d4-0000-4000-8000-00000000c001",
+      "displayName": "Lab Device Compliance Plan",
+      "description": "Requires compliant devices for lab users.",
+      "owners": [
+        "c1a2b3d4-0000-4000-8000-00000000c0e1"
+      ],
+      "tags": [
+        "device-compliance"
+      ],
+      "version": 1,
+      "templateId": null,
+      "createdDateTime": "2026-03-01T10:00:00Z",
+      "modifiedDateTime": "2026-03-01T10:00:00Z",
+      "sharedConditions": {
+        "@odata.type": "microsoft.graph.conditionalAccessConditionSet",
+        "platforms": {
+          "includePlatforms": [
+            "windows"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "@odata.type": "#microsoft.graph.conditionalAccessPolicyRule",
+          "id": "c1a2b3d4-0000-4000-8000-00000000c101",
+          "displayName": "Require compliant Windows devices",
+          "description": "Requires Windows devices to be compliant.",
+          "state": "enabled",
+          "conditions": {
+            "users": {
+              "includeUsers": [
+                "All"
+              ]
+            }
+          },
+          "controls": {
+            "grantControls": {
+              "operator": "OR",
+              "builtInControls": [
+                "compliantDevice"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "@odata.type": "#microsoft.graph.conditionalAccessPolicyPlan",
+      "id": "c1a2b3d4-0000-4000-8000-00000000c002",
+      "displayName": "Lab Agent Access Plan Without Owners",
+      "description": "Plan with an enforcing rule but no owners.",
+      "owners": [],
+      "tags": [
+        "agents"
+      ],
+      "version": 1,
+      "templateId": null,
+      "sharedConditions": null,
+      "rules": [
+        {
+          "@odata.type": "#microsoft.graph.conditionalAccessPolicyRule",
+          "id": "c1a2b3d4-0000-4000-8000-00000000c102",
+          "displayName": "Require MFA for lab agents",
+          "state": "enabled"
+        }
+      ]
+    },
+    {
+      "@odata.type": "#microsoft.graph.conditionalAccessPolicyPlan",
+      "id": "c1a2b3d4-0000-4000-8000-00000000c003",
+      "displayName": "Lab Report-Only Network Plan",
+      "description": "All rules are report-only or disabled.",
+      "owners": [
+        "c1a2b3d4-0000-4000-8000-00000000c0e1"
+      ],
+      "tags": [],
+      "version": 1,
+      "templateId": null,
+      "sharedConditions": {
+        "applications": {
+          "includeApplications": [
+            "All"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "@odata.type": "#microsoft.graph.conditionalAccessPolicyRule",
+          "id": "c1a2b3d4-0000-4000-8000-00000000c103",
+          "displayName": "Report-only named locations",
+          "state": "enabledForReportingButNotEnforced"
+        },
+        {
+          "@odata.type": "#microsoft.graph.conditionalAccessPolicyRule",
+          "id": "c1a2b3d4-0000-4000-8000-00000000c104",
+          "displayName": "Disabled legacy clients",
+          "state": "disabled"
+        }
+      ]
+    },
+    {
+      "@odata.type": "#microsoft.graph.conditionalAccessPolicyPlan",
+      "id": "c1a2b3d4-0000-4000-8000-00000000c004",
+      "displayName": "Lab Empty Rule Plan",
+      "description": "Plan with no rules.",
+      "owners": [
+        "c1a2b3d4-0000-4000-8000-00000000c0e2"
+      ],
+      "tags": [],
+      "version": 1,
+      "templateId": null,
+      "rules": []
+    }
+  ],
+  "lifecyclePolicies": [
+    {
+      "@odata.type": "#microsoft.graph.identityGovernance.agentIdentityLifecyclePolicy",
+      "id": "d2b3c4e5-0000-4000-8000-00000000d001",
+      "displayName": "Default Agent Identity Inactivity Lifecycle Policy",
+      "policySource": "systemDefault",
+      "isEnabled": false,
+      "versionNumber": 1,
+      "gracePeriodInDays": 30,
+      "enforcementAction": {
+        "@odata.type": "#microsoft.graph.identityGovernance.disableThenDeleteEnforcementAction",
+        "deletionGracePeriodInDays": 365
+      },
+      "rules": [
+        {
+          "@odata.type": "#microsoft.graph.identityGovernance.inactivityRule",
+          "id": "d2b3c4e5-0000-4000-8000-00000000d101",
+          "isEnabled": true,
+          "lastActivityThresholdInDays": 60
+        }
+      ]
+    },
+    {
+      "@odata.type": "#microsoft.graph.identityGovernance.guestLifecyclePolicy",
+      "id": "d2b3c4e5-0000-4000-8000-00000000d002",
+      "displayName": "Lab Guest Lifecycle Policy",
+      "policySource": "userCreated",
+      "isEnabled": true,
+      "versionNumber": 1,
+      "rules": []
+    }
+  ],
+  "agentIdentities": [
+    {
+      "@odata.type": "#microsoft.graph.agentIdentity",
+      "id": "e3c4d5f6-0000-4000-8000-00000000e001",
+      "displayName": "Lab Invoice Agent",
+      "accountEnabled": true,
+      "createdDateTime": "2026-01-15T09:00:00Z",
+      "agentIdentityBlueprintId": "e3c4d5f6-0000-4000-8000-00000000e0b1",
+      "servicePrincipalType": "ServiceIdentity",
+      "sponsors": [
+        {
+          "id": "e3c4d5f6-0000-4000-8000-00000000e0s1",
+          "displayName": "Alex Example"
+        }
+      ],
+      "owners": [
+        {
+          "id": "e3c4d5f6-0000-4000-8000-00000000e0o1",
+          "displayName": "Sam Example"
+        }
+      ],
+      "lifecycle": {
+        "@odata.type": "#microsoft.graph.identityGovernance.agentIdentityLifecycle",
+        "id": "e3c4d5f6-0000-4000-8000-00000000e001",
+        "lastAttestationDateTime": "2026-03-01T12:00:00Z",
+        "effectiveGoverningPolicy": {
+          "@odata.type": "#microsoft.graph.identityGovernance.agentIdentityLifecyclePolicy",
+          "id": "d2b3c4e5-0000-4000-8000-00000000d001",
+          "displayName": "Default Agent Identity Inactivity Lifecycle Policy"
+        }
+      }
+    },
+    {
+      "@odata.type": "#microsoft.graph.agentIdentity",
+      "id": "e3c4d5f6-0000-4000-8000-00000000e002",
+      "displayName": "Lab Unsponsored Agent",
+      "accountEnabled": true,
+      "createdDateTime": "2026-02-01T09:00:00Z",
+      "agentIdentityBlueprintId": "e3c4d5f6-0000-4000-8000-00000000e0b1",
+      "servicePrincipalType": "ServiceIdentity",
+      "sponsors": [],
+      "owners": [
+        {
+          "id": "e3c4d5f6-0000-4000-8000-00000000e0o1",
+          "displayName": "Sam Example"
+        }
+      ],
+      "lifecycle": {
+        "@odata.type": "#microsoft.graph.identityGovernance.agentIdentityLifecycle",
+        "id": "e3c4d5f6-0000-4000-8000-00000000e002",
+        "lastAttestationDateTime": null,
+        "effectiveGoverningPolicy": {
+          "id": "d2b3c4e5-0000-4000-8000-00000000d001"
+        }
+      }
+    },
+    {
+      "@odata.type": "#microsoft.graph.agentIdentity",
+      "id": "e3c4d5f6-0000-4000-8000-00000000e003",
+      "displayName": "Lab Ungoverned Agent",
+      "accountEnabled": true,
+      "createdDateTime": "2026-02-15T09:00:00Z",
+      "agentIdentityBlueprintId": "e3c4d5f6-0000-4000-8000-00000000e0b2",
+      "servicePrincipalType": "ServiceIdentity",
+      "sponsors": [
+        {
+          "id": "e3c4d5f6-0000-4000-8000-00000000e0s2",
+          "displayName": "Jordan Example"
+        }
+      ],
+      "owners": [],
+      "lifecycle": {
+        "@odata.type": "#microsoft.graph.identityGovernance.agentIdentityLifecycle",
+        "id": "e3c4d5f6-0000-4000-8000-00000000e003",
+        "lastAttestationDateTime": "2026-02-15T09:00:00Z",
+        "effectiveGoverningPolicy": null
+      }
+    },
+    {
+      "@odata.type": "#microsoft.graph.agentIdentity",
+      "id": "e3c4d5f6-0000-4000-8000-00000000e004",
+      "displayName": "Lab Disabled Agent",
+      "accountEnabled": false,
+      "createdDateTime": "2025-11-01T09:00:00Z",
+      "agentIdentityBlueprintId": "e3c4d5f6-0000-4000-8000-00000000e0b1",
+      "servicePrincipalType": "ServiceIdentity",
+      "sponsors": [],
+      "lifecycle": {
+        "effectiveGoverningPolicy": null
+      }
+    }
   ]
 }

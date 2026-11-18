@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Offline import reads Conditional Access policy plans (`-ConditionalAccessPlanPath` or `conditionalAccessPlans` in an inventory file) and evaluates Q014 (no enforcing rule) and Q015 (no owners). Plans are a preview feature; the Graph API is documented in beta only. Live collection does not read plans.
+- Offline import reads Entra Agent ID lifecycle policies (`-LifecyclePolicyPath` or `lifecyclePolicies`) and agent identities (`-AgentIdentityPath` or `agentIdentities`). Q016 flags an export with no enabled Agent ID policy (guest policies are ignored). Q017 and Q018 flag an enabled agent identity with no effective governing policy or no sponsors, when those properties are present in the export. Graph v1.0. Live collection does not read these objects.
 - Offline import reads gzip-compressed exports (`.json.gz`) for every `-*Path` parameter. Gzip is detected by its magic bytes; a truncated archive fails with a clear message.
 - `-FailOnCount` parameter for `Invoke-Quorum`: throws after the report is written when the finding count reaches a threshold. With `-FailOnSeverity` counts only findings at that severity or worse; alone counts all findings.
 - Rule Q013 flags dynamic groups and dynamic administrative units whose membership rule uses `memberOf`. Microsoft stopped updating them on 3 November 2026 ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of)).

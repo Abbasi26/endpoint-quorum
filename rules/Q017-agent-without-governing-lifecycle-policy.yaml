@@ -1,0 +1,31 @@
+id: Q017
+title: Enabled agent identity has no governing lifecycle policy
+severity: high
+enabled: true
+subject: agentIdentity
+description: >
+  An enabled agent identity was exported with a lifecycle object, and
+  effectiveGoverningPolicy is absent or null. No lifecycle policy currently
+  governs that identity.
+whyItMatters: >
+  The highest-priority matching Agent ID lifecycle policy is the one that
+  governs an agent identity. An enabled agent with no effective policy is
+  not subject to inactivity, sponsor, or reconfirmation rules, so it can
+  remain usable without that oversight.
+remediation: >
+  Check the agent identity's scope against the enabled Agent ID lifecycle
+  policies, including the default inactivity policy and any exclusions.
+  Expand lifecycle/effectiveGoverningPolicy when you export
+  GET /v1.0/servicePrincipals/microsoft.graph.agentIdentity. Microsoft
+  Learn: agentIdentity resource type, and Entra Agent ID lifecycle policies.
+condition:
+  all:
+    - fact: agent.accountEnabled
+      op: eq
+      value: true
+    - fact: agent.lifecyclePresent
+      op: eq
+      value: true
+    - fact: agent.hasEffectiveGoverningPolicy
+      op: eq
+      value: false
