@@ -1,0 +1,25 @@
+id: Q016
+title: No enabled Agent ID lifecycle policy
+severity: high
+enabled: true
+subject: lifecyclePolicySet
+description: >
+  The export contains no enabled Microsoft Entra Agent ID lifecycle policy.
+  Guest lifecycle policies are ignored. The tenant-default inactivity
+  policy, if present, is also disabled.
+whyItMatters: >
+  Agent ID lifecycle policies evaluate inactivity, sponsor presence, and
+  periodic reconfirmation, and can disable or delete agent identities that
+  stay non-compliant. Microsoft provides a default inactivity policy to
+  every tenant (notify at 60 days, disable at 90, delete at 455). With no
+  enabled policy, inactive or unsponsored agent identities can persist.
+remediation: >
+  In Entra ID > ID Governance > Lifecycle Workflows > Lifecycle Policies
+  > Agent ID (preview), enable the default inactivity policy or create a
+  custom Agent ID lifecycle policy. Custom policies take precedence; the
+  default is always last. Microsoft Learn: Entra Agent ID lifecycle
+  policies, and Microsoft Entra Agent ID default inactivity policy.
+condition:
+  fact: lifecyclePolicySet.enabledAgentPolicyCount
+  op: eq
+  value: 0

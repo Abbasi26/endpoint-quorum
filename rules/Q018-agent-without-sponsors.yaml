@@ -1,0 +1,28 @@
+id: Q018
+title: Enabled agent identity has no sponsors
+severity: medium
+enabled: true
+subject: agentIdentity
+description: >
+  An enabled agent identity was exported with a sponsors collection, and
+  that collection is empty.
+whyItMatters: >
+  Sponsors are the accountable human users for an agent identity's
+  lifecycle and access. Lifecycle policies can require a minimum sponsor
+  count (sponsorPresenceRule). An agent with no sponsors has no one to
+  receive reconfirmation or inactivity notifications unless a fallback
+  recipient is configured on the policy.
+remediation: >
+  Assign at least one sponsor on the agent identity, and confirm a
+  lifecycle policy covers it. Export sponsors with
+  GET /v1.0/servicePrincipals/microsoft.graph.agentIdentity?$expand=sponsors.
+  Microsoft Learn: agentIdentity resource type (sponsors relationship),
+  and Entra Agent ID lifecycle policies.
+condition:
+  all:
+    - fact: agent.accountEnabled
+      op: eq
+      value: true
+    - fact: agent.hasSponsors
+      op: eq
+      value: false

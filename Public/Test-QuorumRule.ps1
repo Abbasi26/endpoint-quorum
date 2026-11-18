@@ -20,7 +20,8 @@ function Test-QuorumRule {
     .DESCRIPTION
         Checks every YAML rule in a directory (or one file) for the required fields,
         a valid severity, subject and id, duplicate ids, unknown facts (device facts for
-        device rules, directory.* facts for subject: directoryObject), unknown operators,
+        device rules; directory.*, plan.*, lifecyclePolicy.*, lifecyclePolicySet.*, or
+        agent.* facts for the matching subject), unknown operators,
         predicates without a value, and valueFrom references to parameters that do
         not exist. An unknown fact never matches at run time, so a typo would
         otherwise silently disable a rule. Nothing is evaluated against devices.
@@ -77,6 +78,10 @@ function Test-QuorumRule {
             }
             $known = $script:QuorumKnownFacts
             if ($rule.Subject -eq 'directoryObject') { $known = $script:QuorumDirectoryFacts }
+            elseif ($rule.Subject -eq 'conditionalAccessPlan') { $known = $script:QuorumConditionalAccessPlanFacts }
+            elseif ($rule.Subject -eq 'lifecyclePolicy') { $known = $script:QuorumLifecyclePolicyFacts }
+            elseif ($rule.Subject -eq 'lifecyclePolicySet') { $known = $script:QuorumLifecyclePolicySetFacts }
+            elseif ($rule.Subject -eq 'agentIdentity') { $known = $script:QuorumAgentIdentityFacts }
             Test-QuorumRuleCondition -Condition $rule.Condition -Parameter $rule.Parameters -Errors $errors -Where 'condition' -Known $known
             if ($rule.GroupBy -and $known -notcontains $rule.GroupBy) {
                 $errors.Add("groupBy uses unknown fact '$($rule.GroupBy)'.")

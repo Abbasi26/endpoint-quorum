@@ -19,7 +19,7 @@ Import-Module Pester -RequiredVersion 5.9.1
 
 ## Add a rule
 
-1. Copy an existing file in `rules/` to a new name such as `Q013-short-name.yaml`.
+1. Copy an existing file in `rules/` to a new name such as `Q019-short-name.yaml`.
 2. Give it a new id, a severity (`critical`, `high`, `medium`, `low`, or `info`), and the fields in the README rule section.
 3. Use facts the engine already publishes. If you need a new fact, add it in `Private/Get-QuorumFact.ps1` and cover it with a test.
 4. Run `Invoke-Quorum -Demo` and confirm the rule fires only on the devices you expect.
