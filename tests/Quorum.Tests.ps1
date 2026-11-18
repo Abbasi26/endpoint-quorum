@@ -125,14 +125,15 @@ Describe 'Rules' {
         $global:QuorumOld = [datetime]::new(2026, 1, 1, 12, 0, 0, [DateTimeKind]::Utc)
     }
 
-    It 'loads the thirteen starter rules' {
+    It 'loads the eighteen starter rules' {
         InModuleScope Quorum {
             $rules = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules'))
-            $rules.Count | Should -Be 13
+            $rules.Count | Should -Be 18
             $ids = @($rules | ForEach-Object { $_.Id } | Sort-Object)
             $ids | Should -Contain 'Q001'
             $ids | Should -Contain 'Q013'
-            @($rules | Where-Object { $_.Enabled }).Count | Should -Be 13
+            $ids | Should -Contain 'Q018'
+            @($rules | Where-Object { $_.Enabled }).Count | Should -Be 18
         }
     }
 

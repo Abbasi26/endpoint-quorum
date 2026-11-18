@@ -40,7 +40,10 @@ Describe 'Offline import' {
         $defender = Write-TestJson 'defender.json' @{ value = @($script:Demo.defender) }
         $groups = Write-TestJson 'groups.json' @{ value = @($script:Demo.groups) }
         $units = Write-TestJson 'units.json' @($script:Demo.administrativeUnits)
-        $r = Invoke-Quorum -IntunePath $intune -EntraPath $entra -DefenderPath $defender -GroupPath $groups -AdministrativeUnitPath $units -AsOf ([datetime]$script:Demo.asOf) -OutputPath (Join-Path $script:Work 'split') 6>$null
+        $plans = Write-TestJson 'plans.json' @{ value = @($script:Demo.conditionalAccessPlans) }
+        $policies = Write-TestJson 'policies.json' @($script:Demo.lifecyclePolicies)
+        $agents = Write-TestJson 'agents.json' @{ value = @($script:Demo.agentIdentities) }
+        $r = Invoke-Quorum -IntunePath $intune -EntraPath $entra -DefenderPath $defender -GroupPath $groups -AdministrativeUnitPath $units -ConditionalAccessPlanPath $plans -LifecyclePolicyPath $policies -AgentIdentityPath $agents -AsOf ([datetime]$script:Demo.asOf) -OutputPath (Join-Path $script:Work 'split') 6>$null
         $demo = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'demo2') 6>$null
         $r.Mode | Should -Be 'Import'
         $r.DeviceCount | Should -Be $demo.DeviceCount
@@ -133,13 +136,13 @@ Describe 'FailOnSeverity' {
 Describe 'FailOnCount' {
     It 'throws when total findings reach the threshold' {
         $out = Join-Path $script:Work 'cnt1'
-        { Invoke-Quorum -Demo -OutputPath $out -FailOnCount 38 6>$null } | Should -Throw '*total finding(s)*Threshold: 38*'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnCount 44 6>$null } | Should -Throw '*total finding(s)*Threshold: 44*'
         Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
     }
 
     It 'passes when total findings are below the threshold' {
-        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt2') -FailOnCount 39 6>$null
-        $r.FindingCount | Should -Be 38
+        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt2') -FailOnCount 45 6>$null
+        $r.FindingCount | Should -Be 44
     }
 
     It 'throws when findings at severity reach the threshold' {
@@ -149,13 +152,13 @@ Describe 'FailOnCount' {
     }
 
     It 'passes when findings at severity are below the threshold' {
-        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt4') -FailOnSeverity high -FailOnCount 20 6>$null
-        $r.FindingCount | Should -Be 38
+        $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt4') -FailOnSeverity high -FailOnCount 25 6>$null
+        $r.FindingCount | Should -Be 44
     }
 
     It 'passes when no finding reaches the severity' {
         $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'cnt5') -FailOnSeverity critical -FailOnCount 1 6>$null
-        $r.FindingCount | Should -Be 38
+        $r.FindingCount | Should -Be 44
     }
 
     It 'rejects zero threshold' {
@@ -168,7 +171,7 @@ Describe 'FailOnCount' {
 
     It 'works with info severity (counts all)' {
         $out = Join-Path $script:Work 'cnt8'
-        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity info -FailOnCount 38 6>$null } | Should -Throw '*severity info or worse*Threshold: 38*'
+        { Invoke-Quorum -Demo -OutputPath $out -FailOnSeverity info -FailOnCount 44 6>$null } | Should -Throw '*severity info or worse*Threshold: 44*'
         Test-Path -LiteralPath (Join-Path $out 'Quorum-Report.html') | Should -BeTrue
     }
 

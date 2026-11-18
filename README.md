@@ -9,7 +9,7 @@
 <p align="center">Finds the devices Intune, Entra ID and Defender disagree about.</p>
 
 <p align="center">
-  <img src="docs/assets/readme-hero.png" width="800" alt="Terminal output of Invoke-Quorum -Demo: 36 findings for 50 fictional devices, 15 high and 21 medium, rules Q001 to Q012 with severity and count, and a -FailOnSeverity high gate reporting 15 high findings.">
+  <img src="docs/assets/readme-hero.png" width="800" alt="Terminal output of an Invoke-Quorum -Demo run, with findings grouped by rule and a -FailOnSeverity high gate.">
 </p>
 
 # Quorum
@@ -33,7 +33,7 @@ Microsoft365DSC, Maester, CIPP, the Intune and Entra built-in reports, and Condi
 
 ## Try it in a minute
 
-Requires [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) (Windows PowerShell 5.1 works for the same commands). From this directory:
+Requires [PowerShell 7.6 (LTS) or 7.7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell); Windows PowerShell 5.1 works for the same commands. PowerShell 7.4 and 7.5 are out of support since 10 November 2026 and are no longer tested. From this directory:
 
 ```powershell
 Import-Module ./Quorum.psd1
@@ -82,6 +82,35 @@ Invoke-Quorum -GroupPath .\groups.json -AdministrativeUnitPath .\administrativeU
 
 Both files can be combined with the device exports, or put into an inventory file as `groups` and `administrativeUnits` arrays. The live collection does not read groups or administrative units, so it needs no extra permissions.
 
+### Conditional Access policy plans (preview)
+
+Policy plans group Conditional Access rules under shared conditions ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-conditional-access-policy-plans)). They are a preview feature. The list API is documented in Microsoft Graph **beta** only (`GET /identity/conditionalAccess/plans`); requesting the v1.0 docs still serves the beta page, and examples use `https://graph.microsoft.com/beta/...`. Existing standalone policies keep working; plans are additive, and Quorum does not simulate sign-in or What-If.
+
+Rules Q014 and Q015 evaluate an export. Inline each plan's `rules` (from `GET /beta/identity/conditionalAccess/plans/{id}/rules`) so Quorum can see each rule's `state` (`enabled`, `disabled`, or `enabledForReportingButNotEnforced`). A plan that only has `rules@odata.count` is counted, but Q014 does not flag it, because the rule states are unknown. Least-privileged read permission: `Policy.Read.ConditionalAccess`.
+
+```powershell
+# Graph Explorer or any Graph client, read-only, beta:
+# GET https://graph.microsoft.com/beta/identity/conditionalAccess/plans
+# GET https://graph.microsoft.com/beta/identity/conditionalAccess/plans/{id}/rules
+Invoke-Quorum -ConditionalAccessPlanPath .\plans.json
+```
+
+### Agent ID identities and lifecycle policies
+
+[Agent ID lifecycle policies](https://learn.microsoft.com/en-us/entra/id-governance/agent-lifecycle-policies) (preview) govern agent identities with inactivity, sponsor, and periodic reconfirmation rules. Microsoft also ships a [default inactivity policy](https://learn.microsoft.com/en-us/entra/id-governance/agent-default-inactivity-policy) to every tenant. These objects are documented in Microsoft Graph **v1.0** and beta:
+
+- Policies: `GET /v1.0/identityGovernance/lifecycleWorkflows/lifecyclePolicies` (`LifecyclePolicies-AgentId.Read.All`). Agent policies have `@odata.type` `#microsoft.graph.identityGovernance.agentIdentityLifecyclePolicy`. Guest policies in the same list are ignored.
+- Identities: `GET /v1.0/servicePrincipals/microsoft.graph.agentIdentity` (`AgentIdentity.Read.All`). Expand `sponsors`, `owners`, and `lifecycle` (and `lifecycle/effectiveGoverningPolicy` when your client can). Q017 and Q018 only use those properties when they are present in the export.
+
+```powershell
+# Graph Explorer or any Graph client, read-only, v1.0:
+# GET https://graph.microsoft.com/v1.0/identityGovernance/lifecycleWorkflows/lifecyclePolicies
+# GET https://graph.microsoft.com/v1.0/servicePrincipals/microsoft.graph.agentIdentity?$expand=sponsors,owners,lifecycle
+Invoke-Quorum -LifecyclePolicyPath .\lifecyclePolicies.json -AgentIdentityPath .\agentIdentities.json
+```
+
+These arrays can also live in an inventory file as `conditionalAccessPlans`, `lifecyclePolicies`, and `agentIdentities`. The live collection does not read them, so it still requests only the device permissions in the table below.
+
 ## Gate a scheduled run
 
 `-FailOnSeverity` writes the report first and then throws if any finding is at that severity or worse. The result object also carries `HighestSeverity`.
@@ -89,12 +118,12 @@ Both files can be combined with the device exports, or put into an inventory fil
 `-FailOnCount` fails the run when the finding count reaches this threshold. With `-FailOnSeverity` it counts only findings at that severity or worse; alone it counts all findings.
 
 ```powershell
-Invoke-Quorum -Demo -FailOnSeverity high       # throws: the demo has 18 high findings
+Invoke-Quorum -Demo -FailOnSeverity high       # throws: the demo has 20 high findings
 Invoke-Quorum -Demo -FailOnSeverity critical   # passes
-Invoke-Quorum -Demo -FailOnCount 38            # throws: demo has 38 total findings
-Invoke-Quorum -Demo -FailOnCount 39            # passes
-Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10  # throws: 18 high >= 10
-Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 20  # passes
+Invoke-Quorum -Demo -FailOnCount 44            # throws: demo has 44 total findings
+Invoke-Quorum -Demo -FailOnCount 45            # passes
+Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 10  # throws: 20 high >= 10
+Invoke-Quorum -Demo -FailOnSeverity high -FailOnCount 25  # passes
 ```
 
 ## Live, read-only collection
@@ -172,7 +201,7 @@ Rules are YAML files in `rules/`. Each file needs:
 | `condition` | yes | `all`, `any`, `not`, or a `fact` predicate. |
 | `parameters` | no | Numbers or strings the condition can reference with `valueFrom`. |
 | `groupBy` | no | A fact name. Matching devices that share it become one finding. |
-| `subject` | no | `device` (default) or `directoryObject`. A `directoryObject` rule evaluates exported groups and administrative units with the `directory.*` facts. |
+| `subject` | no | `device` (default), `directoryObject`, `conditionalAccessPlan`, `lifecyclePolicy`, `lifecyclePolicySet`, or `agentIdentity`. Non-device subjects evaluate the matching export; they never join device matching. |
 | `enabled` | no | `true` by default. `false` keeps the file but skips it. |
 
 A predicate looks like this:
@@ -214,6 +243,40 @@ Facts for `subject: directoryObject` rules:
 | `directory.processingState` | Lower-case `membershipRuleProcessingState`, such as `on` or `paused`. |
 | `directory.usesMemberOf` | Dynamic, and the rule uses `user.memberof` or `device.memberof`. |
 
+Facts for `subject: conditionalAccessPlan` rules (from a plans export):
+
+| Fact | Meaning |
+| --- | --- |
+| `plan.displayName`, `plan.description`, `plan.version`, `plan.templateId` | Plan metadata as exported. |
+| `plan.ownerCount`, `plan.hasOwners` | Owners are a string collection of user or group ids. Null when `owners` was not exported. |
+| `plan.ruleCount` | Length of the inlined `rules` array, or `rules@odata.count` when rules were not expanded. |
+| `plan.enforcingRuleCount`, `plan.reportOnlyRuleCount`, `plan.disabledRuleCount` | Counts by rule `state`. Null when rules were not inlined. |
+| `plan.hasEnforcingRule` | True when at least one inlined rule has `state` `enabled`. False when rules are inlined and none are enabled, or when `ruleCount` is 0. Null when only `rules@odata.count` is present and is greater than 0. |
+| `plan.hasSharedConditions` | The plan has a non-empty `sharedConditions` object. |
+| `plan.rulesExpanded` | The `rules` array was present on the plan. |
+| `plan.tagCount` | Number of tags, when `tags` was exported. |
+
+Facts for `subject: lifecyclePolicy` and `subject: lifecyclePolicySet` rules (from a lifecycle policies export):
+
+| Fact | Meaning |
+| --- | --- |
+| `lifecyclePolicy.isAgentIdentity` | `@odata.type` contains `agentIdentityLifecyclePolicy`. Guest policies are false. |
+| `lifecyclePolicy.isEnabled`, `lifecyclePolicy.isSystemDefault`, `lifecyclePolicy.policySource` | Policy flags. `systemDefault` is the Microsoft-managed default. |
+| `lifecyclePolicy.enforcementKind` | `disable`, `delete`, or `disableThenDelete`, from the enforcement action `@odata.type`. |
+| `lifecyclePolicy.ruleCount`, `lifecyclePolicy.enabledRuleCount`, `lifecyclePolicy.gracePeriodInDays`, `lifecyclePolicy.versionNumber`, `lifecyclePolicy.displayName` | Policy fields as exported. |
+| `lifecyclePolicySet.agentPolicyCount`, `lifecyclePolicySet.enabledAgentPolicyCount` | Counts of agent (not guest) policies in the export. |
+| `lifecyclePolicySet.defaultPresent`, `lifecyclePolicySet.defaultEnabled` | Whether a `systemDefault` agent policy is in the export, and whether it is enabled. |
+
+Facts for `subject: agentIdentity` rules (from an agent identity export):
+
+| Fact | Meaning |
+| --- | --- |
+| `agent.displayName`, `agent.accountEnabled`, `agent.blueprintId`, `agent.disabledByMicrosoft` | Identity fields as exported. |
+| `agent.sponsorCount`, `agent.hasSponsors`, `agent.ownerCount`, `agent.hasOwners` | Null when that collection was not exported. An empty array counts as zero. |
+| `agent.lifecyclePresent` | A `lifecycle` object was present. |
+| `agent.hasEffectiveGoverningPolicy` | `lifecycle.effectiveGoverningPolicy` was present and non-null. Null when `lifecycle` is missing or the navigation was not expanded. |
+| `agent.complianceIssueCount`, `agent.lastAttestationAgeDays` | From `lifecycle`, when those properties were exported. |
+
 Ages are whole days before the collection time. In `-Demo`, that time is the `asOf` field in the inventory file.
 
 ### Starter rules
@@ -233,6 +296,11 @@ Ages are whole days before the collection time. In `-Demo`, that time is the `as
 | Q011 | medium | Defender reported within 14 days with an inactive, impaired, or no-sensor health state, and Intune says compliant. |
 | Q012 | high | Entra device is disabled, and Defender still has an onboarded machine that reported within 14 days. |
 | Q013 | high | A dynamic group or dynamic administrative unit uses the `memberOf` operator, which stopped updating on 3 November 2026. Needs a groups or AU export. |
+| Q014 | medium | A Conditional Access policy plan has no rule in the `enabled` state (all missing, disabled, or report-only). Needs a plans export with inlined rules. Graph beta; preview. |
+| Q015 | low | A Conditional Access policy plan has no owners. Owners are metadata only. Needs a plans export. Graph beta; preview. |
+| Q016 | high | The lifecycle policies export has no enabled Agent ID lifecycle policy (guest policies are ignored). Graph v1.0. |
+| Q017 | high | An enabled agent identity has a `lifecycle` object, and `effectiveGoverningPolicy` is null. Needs an agent identity export with lifecycle expanded. Graph v1.0. |
+| Q018 | medium | An enabled agent identity has an empty `sponsors` collection. Needs an agent identity export with sponsors expanded. Graph v1.0. |
 
 Thresholds live in each file under `parameters`. Change the number there; you do not have to edit the engine.
 
@@ -241,8 +309,8 @@ Thresholds live in each file under `parameters`. Change the number there; you do
 Copy `rules/Q001-intune-compliant-defender-stale.yaml`, pick a free id, and keep the condition to facts in the table. Then:
 
 ```powershell
-Test-QuorumRule -Path .\rules\Q014-your-rule.yaml
-Invoke-Quorum -Demo -RulesPath .\rules\Q014-your-rule.yaml
+Test-QuorumRule -Path .\rules\Q019-your-rule.yaml
+Invoke-Quorum -Demo -RulesPath .\rules\Q019-your-rule.yaml
 Invoke-Pester ./tests
 ```
 
@@ -258,9 +326,9 @@ Import-Module Pester -RequiredVersion 5.9.1
 Invoke-Pester ./tests
 ```
 
-The suite has 73 Pester tests. They cover matching, the rule files, collector normalization, device classification, and redaction. They use the demo inventory and small in-memory records. They do not sign in.
+The suite has 83 Pester tests. They cover matching, the rule files, collector normalization, device classification, and redaction. They use the demo inventory and small in-memory records. They do not sign in.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs that suite on `ubuntu-latest` with PowerShell 7.6 LTS, and on `windows-latest` with PowerShell 7.6 LTS and Windows PowerShell 5.1.
+GitHub Actions (`.github/workflows/ci.yml`) runs that suite on `ubuntu-latest` with PowerShell 7.6 LTS and 7.7, and on `windows-latest` with PowerShell 7.6 LTS, 7.7, and Windows PowerShell 5.1.
 
 ## Security and privacy
 
@@ -302,4 +370,4 @@ Import-Module ./Quorum.psd1
 
 Quorum liest den Gerätezustand aus Intune, Entra ID und Microsoft Defender for Endpoint nur lesend ein. Es ordnet die Datensätze über die Entra-Geräte-ID einander zu, sonst über den Hostnamen, und bewertet die Sicherheit des Treffers. Widersprüche zwischen den Quellen werden als Befunde gemeldet: zum Beispiel ein Gerät, das in Intune konform ist, obwohl Defender es seit vielen Tagen nicht gesehen hat, oder ein aktiviertes Entra-Objekt ohne Intune-Eintrag.
 
-Der Einstieg braucht kein Netzwerk: `Import-Module ./Quorum.psd1` und `Invoke-Quorum -Demo`. Dabei entsteht ein HTML-Bericht, eine Markdown-Zusammenfassung sowie CSV und JSON. Mit `-Redact` werden Hostnamen, Namen, UPNs und IP-Adressen innerhalb eines Laufs gleichbleibend pseudonymisiert. Berichte bleiben lokal. Quorum sendet keine Telemetrie und fordert keine Schreibrechte an. Nicht enthalten in 0.1: MECM, Konfigurationsdrift, Richtlinien als Code und eine Simulation des bedingten Zugriffs.
+Der Einstieg braucht kein Netzwerk: `Import-Module ./Quorum.psd1` und `Invoke-Quorum -Demo`. Dabei entsteht ein HTML-Bericht, eine Markdown-Zusammenfassung sowie CSV und JSON. Mit `-Redact` werden Hostnamen, Namen, UPNs und IP-Adressen innerhalb eines Laufs gleichbleibend pseudonymisiert. Berichte bleiben lokal. Quorum sendet keine Telemetrie und fordert keine Schreibrechte an. Zusätzlich zu den Geräteregeln werten Q013 bis Q018 optionale Exporte aus: dynamische Gruppen und administrative Einheiten, Conditional-Access-Policy-Plans (Vorschau, Microsoft Graph beta) sowie Agent-ID-Identitäten und deren Lifecycle-Richtlinien (Microsoft Graph v1.0). Die Live-Sammlung liest diese Objekte nicht. Nicht enthalten: MECM, Konfigurationsdrift, Richtlinien als Code und eine Simulation des bedingten Zugriffs.
