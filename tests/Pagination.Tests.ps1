@@ -18,6 +18,7 @@ Describe 'Pagination limit' {
 
             Mock Invoke-QuorumRest {
                 param($Uri, $Token)
+                $null = $Token
 
                 $number = [int]([uri]$Uri).Query.TrimStart('?')
                 $nextLink = $null

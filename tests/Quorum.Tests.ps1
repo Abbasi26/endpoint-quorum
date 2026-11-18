@@ -21,9 +21,9 @@ BeforeAll {
                 $UserPrincipalName,
                 $UserDisplayName
             )
-            $parts = Get-QuorumHostnameParts $Hostname
+            $parts = Split-QuorumHostname $Hostname
             if ($null -eq $parts) { throw 'Test hostname is empty.' }
-            New-QuorumRecord -Source $Source `
+            ConvertTo-QuorumRecordObject -Source $Source `
                 -DeviceId $DeviceId `
                 -HostnameOriginal $parts.Original `
                 -HostnameRaw $parts.Raw `
@@ -119,12 +119,6 @@ Describe 'Device matching' {
 }
 
 Describe 'Rules' {
-    BeforeAll {
-        $global:QuorumAsOf = [datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)
-        $global:QuorumRecent = [datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)
-        $global:QuorumOld = [datetime]::new(2026, 1, 1, 12, 0, 0, [DateTimeKind]::Utc)
-    }
-
     It 'loads the eighteen starter rules' {
         InModuleScope Quorum {
             $rules = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules'))
@@ -173,11 +167,11 @@ condition:
     It 'flags a compliant Intune device whose Defender contact is stale' {
         InModuleScope Quorum {
             $id = '40000000-0000-4000-8000-0000000000e1'
-            $intune = New-QuorumTestRecord -Source 'Intune' -DeviceId $id -Hostname 'silent-sensor' -ObservedAt $global:QuorumRecent -ComplianceState 'compliant' -OsBuild '26100'
-            $defender = New-QuorumTestRecord -Source 'Defender' -DeviceId $id -Hostname 'silent-sensor' -ObservedAt $global:QuorumOld -OsBuild '26100' -OnboardingStatus 'onboarded' -HealthStatus 'active' -RiskScore 'low'
+            $intune = New-QuorumTestRecord -Source 'Intune' -DeviceId $id -Hostname 'silent-sensor' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -ComplianceState 'compliant' -OsBuild '26100'
+            $defender = New-QuorumTestRecord -Source 'Defender' -DeviceId $id -Hostname 'silent-sensor' -ObservedAt ([datetime]::new(2026, 1, 1, 12, 0, 0, [DateTimeKind]::Utc)) -OsBuild '26100' -OnboardingStatus 'onboarded' -HealthStatus 'active' -RiskScore 'low'
             $devices = (Merge-QuorumDevice -Record @($intune, $defender))
             $rules = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules'))
-            $findings = (Invoke-QuorumRule -Device $devices -Rule $rules -AsOf $global:QuorumAsOf)
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rules -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $ids = @($findings | ForEach-Object { $_.RuleId })
             $ids | Should -Contain 'Q001'
             $ids | Should -Not -Contain 'Q003'
@@ -187,10 +181,10 @@ condition:
 
     It 'flags an Intune device with no Defender record' {
         InModuleScope Quorum {
-            $intune = New-QuorumTestRecord -Source 'Intune' -DeviceId '40000000-0000-4000-8000-0000000000e2' -Hostname 'no-sensor' -ObservedAt $global:QuorumRecent -ComplianceState 'compliant' -OsBuild '26100'
+            $intune = New-QuorumTestRecord -Source 'Intune' -DeviceId '40000000-0000-4000-8000-0000000000e2' -Hostname 'no-sensor' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -ComplianceState 'compliant' -OsBuild '26100'
             $devices = (Merge-QuorumDevice -Record @($intune))
             $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q003-intune-without-defender.yaml'))
-            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $findings.Count | Should -Be 1
             $findings[0].RuleId | Should -Be 'Q003'
             $findings[0].Severity | Should -Be 'high'
@@ -199,10 +193,10 @@ condition:
 
     It 'flags an enabled Windows device that Intune does not know' {
         InModuleScope Quorum {
-            $entra = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e3' -Hostname 'unmanaged-win' -ObservedAt $global:QuorumRecent -AccountEnabled $true -OperatingSystem 'Windows' -OsBuild '26100'
+            $entra = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e3' -Hostname 'unmanaged-win' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -AccountEnabled $true -OperatingSystem 'Windows' -OsBuild '26100'
             $devices = (Merge-QuorumDevice -Record @($entra))
             $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q002-entra-enabled-no-intune.yaml'))
-            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $findings.Count | Should -Be 1
             $findings[0].RuleId | Should -Be 'Q002'
         }
@@ -210,10 +204,10 @@ condition:
 
     It 'does not flag an enabled Windows Server device that Intune does not know' {
         InModuleScope Quorum {
-            $entra = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e9' -Hostname 'unmanaged-server' -ObservedAt $global:QuorumRecent -AccountEnabled $true -OperatingSystem 'Windows Server' -OsBuild '20348'
+            $entra = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e9' -Hostname 'unmanaged-server' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -AccountEnabled $true -OperatingSystem 'Windows Server' -OsBuild '20348'
             $devices = (Merge-QuorumDevice -Record @($entra))
             $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q002-entra-enabled-no-intune.yaml'))
-            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $findings.Count | Should -Be 0
             (Get-QuorumDeviceClass -Device $devices[0]) | Should -Be 'windows-server'
         }
@@ -222,28 +216,28 @@ condition:
     It 'flags an OS build mismatch and ignores a revision inside the same build' {
         InModuleScope Quorum {
             $id = '40000000-0000-4000-8000-0000000000e4'
-            $mismatchIntune = New-QuorumTestRecord -Source 'Intune' -DeviceId $id -Hostname 'build-gap' -ObservedAt $global:QuorumRecent -ComplianceState 'compliant' -OsBuild '26100'
-            $mismatchDefender = New-QuorumTestRecord -Source 'Defender' -DeviceId $id -Hostname 'build-gap' -ObservedAt $global:QuorumRecent -OsBuild '22631' -OnboardingStatus 'onboarded'
+            $mismatchIntune = New-QuorumTestRecord -Source 'Intune' -DeviceId $id -Hostname 'build-gap' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -ComplianceState 'compliant' -OsBuild '26100'
+            $mismatchDefender = New-QuorumTestRecord -Source 'Defender' -DeviceId $id -Hostname 'build-gap' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -OsBuild '22631' -OnboardingStatus 'onboarded'
             $mismatch = (Merge-QuorumDevice -Record @($mismatchIntune, $mismatchDefender))
             $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q004-os-build-mismatch.yaml'))
-            $hit = (Invoke-QuorumRule -Device $mismatch -Rule $rule -AsOf $global:QuorumAsOf)
+            $hit = (Invoke-QuorumRule -Device $mismatch -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $hit.Count | Should -Be 1
 
             $sameIntune = New-QuorumTestRecord -Source 'Intune' -DeviceId $id -Hostname 'build-same' -OsBuild '26100'
             $sameDefender = New-QuorumTestRecord -Source 'Defender' -DeviceId $id -Hostname 'build-same' -OsBuild '26100'
             $same = (Merge-QuorumDevice -Record @($sameIntune, $sameDefender))
-            $miss = (Invoke-QuorumRule -Device $same -Rule $rule -AsOf $global:QuorumAsOf)
+            $miss = (Invoke-QuorumRule -Device $same -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $miss.Count | Should -Be 0
         }
     }
 
     It 'groups duplicate hostnames into one finding' {
         InModuleScope Quorum {
-            $left = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e5' -Hostname 'shared-desk' -ObservedAt $global:QuorumRecent -AccountEnabled $true -OperatingSystem 'Windows'
-            $right = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e6' -Hostname 'shared-desk.lab.example' -ObservedAt $global:QuorumRecent -AccountEnabled $true -OperatingSystem 'Windows'
+            $left = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e5' -Hostname 'shared-desk' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -AccountEnabled $true -OperatingSystem 'Windows'
+            $right = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e6' -Hostname 'shared-desk.lab.example' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -AccountEnabled $true -OperatingSystem 'Windows'
             $devices = (Merge-QuorumDevice -Record @($left, $right))
             $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q006-duplicate-hostname.yaml'))
-            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $findings.Count | Should -Be 1
             @($findings[0].QuorumIds).Count | Should -Be 2
             $findings[0].GroupKey | Should -Be 'shared-desk'
@@ -253,11 +247,11 @@ condition:
     It 'flags high Defender risk on a compliant Intune device' {
         InModuleScope Quorum {
             $id = '40000000-0000-4000-8000-0000000000e7'
-            $intune = New-QuorumTestRecord -Source 'Intune' -DeviceId $id -Hostname 'risky-compliant' -ObservedAt $global:QuorumRecent -ComplianceState 'compliant' -OsBuild '26100'
-            $defender = New-QuorumTestRecord -Source 'Defender' -DeviceId $id -Hostname 'risky-compliant' -ObservedAt $global:QuorumRecent -OsBuild '26100' -RiskScore 'High' -OnboardingStatus 'onboarded' -HealthStatus 'active'
+            $intune = New-QuorumTestRecord -Source 'Intune' -DeviceId $id -Hostname 'risky-compliant' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -ComplianceState 'compliant' -OsBuild '26100'
+            $defender = New-QuorumTestRecord -Source 'Defender' -DeviceId $id -Hostname 'risky-compliant' -ObservedAt ([datetime]::new(2026, 4, 14, 12, 0, 0, [DateTimeKind]::Utc)) -OsBuild '26100' -RiskScore 'High' -OnboardingStatus 'onboarded' -HealthStatus 'active'
             $devices = (Merge-QuorumDevice -Record @($intune, $defender))
             $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q007-defender-high-risk-intune-compliant.yaml'))
-            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
             $findings.Count | Should -Be 1
             $findings[0].Severity | Should -Be 'high'
         }
@@ -287,7 +281,7 @@ condition:
                 $intune = New-QuorumTestRecord -Source 'Intune' -DeviceId '40000000-0000-4000-8000-0000000000e8' -Hostname 'still-here' -ComplianceState 'compliant'
                 $devices = (Merge-QuorumDevice -Record @($intune))
                 $rule = (Import-QuorumRule -Path $dir)
-                $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+                $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf ([datetime]::new(2026, 4, 15, 12, 0, 0, [DateTimeKind]::Utc)))
                 $findings.Count | Should -Be 0
             }
             finally {

@@ -7,7 +7,7 @@ function ConvertTo-QuorumBlankNull {
     return $Value
 }
 
-function New-QuorumRecord {
+function ConvertTo-QuorumRecordObject {
     param(
         [string]$Source,
         $SourceObjectId,
@@ -66,7 +66,7 @@ function New-QuorumRecord {
 function ConvertTo-QuorumIntuneRecord {
     param($Item)
     foreach ($one in (ConvertTo-QuorumItemList $Item)) {
-        $name = Get-QuorumHostnameParts (Get-QuorumProperty $one 'deviceName')
+        $name = Split-QuorumHostname (Get-QuorumProperty $one 'deviceName')
         $attrs = New-Object System.Collections.Generic.List[object]
         $compliance = ConvertTo-QuorumToken (Get-QuorumProperty $one 'complianceState')
         $osVersion = Get-QuorumProperty $one 'osVersion'
@@ -101,7 +101,7 @@ function ConvertTo-QuorumIntuneRecord {
         Add-QuorumAttribute $attrs 'Serial number' (Get-QuorumProperty $one 'serialNumber') 'serial'
         Add-QuorumAttribute $attrs 'Model' (Get-QuorumProperty $one 'model') 'model'
         Add-QuorumAttribute $attrs 'Manufacturer' (Get-QuorumProperty $one 'manufacturer') 'manufacturer'
-        New-QuorumRecord -Source 'Intune' `
+        ConvertTo-QuorumRecordObject -Source 'Intune' `
             -SourceObjectId ([string](Get-QuorumProperty $one 'id')) `
             -DeviceId $deviceId `
             -HostnameOriginal $(if ($name) { $name.Original } else { $null }) `
@@ -121,7 +121,7 @@ function ConvertTo-QuorumIntuneRecord {
 function ConvertTo-QuorumEntraRecord {
     param($Item)
     foreach ($one in (ConvertTo-QuorumItemList $Item)) {
-        $name = Get-QuorumHostnameParts (Get-QuorumProperty $one 'displayName')
+        $name = Split-QuorumHostname (Get-QuorumProperty $one 'displayName')
         $attrs = New-Object System.Collections.Generic.List[object]
         $deviceId = ConvertTo-QuorumDeviceId (Get-QuorumProperty $one 'deviceId')
         $osVersion = Get-QuorumProperty $one 'operatingSystemVersion'
@@ -146,7 +146,7 @@ function ConvertTo-QuorumEntraRecord {
         if ($null -ne $registered) { Add-QuorumAttribute $attrs 'Registered' (ConvertTo-QuorumTimestamp $registered) 'registered' }
         Add-QuorumAttribute $attrs 'Ownership' (Get-QuorumProperty $one 'deviceOwnership') 'ownership'
         Add-QuorumAttribute $attrs 'Profile' (Get-QuorumProperty $one 'profileType') 'profile'
-        New-QuorumRecord -Source 'Entra' `
+        ConvertTo-QuorumRecordObject -Source 'Entra' `
             -SourceObjectId ([string](Get-QuorumProperty $one 'id')) `
             -DeviceId $deviceId `
             -HostnameOriginal $(if ($name) { $name.Original } else { $null }) `
@@ -169,7 +169,7 @@ function ConvertTo-QuorumDefenderRecord {
     param($Item)
     foreach ($one in (ConvertTo-QuorumItemList $Item)) {
         $dns = Get-QuorumProperty $one 'computerDnsName'
-        $name = Get-QuorumHostnameParts $dns
+        $name = Split-QuorumHostname $dns
         $attrs = New-Object System.Collections.Generic.List[object]
         $deviceId = ConvertTo-QuorumDeviceId (Get-QuorumProperty $one 'aadDeviceId')
         $osVersion = Get-QuorumProperty $one 'osVersion'
@@ -192,7 +192,7 @@ function ConvertTo-QuorumDefenderRecord {
         Add-QuorumAttribute $attrs 'OS build' $build 'osBuild'
         if ($null -ne $seen) { Add-QuorumAttribute $attrs 'Last seen' (ConvertTo-QuorumTimestamp $seen) 'lastSeen' }
         Add-QuorumAttribute $attrs 'Last IP' $ip 'ip'
-        New-QuorumRecord -Source 'Defender' `
+        ConvertTo-QuorumRecordObject -Source 'Defender' `
             -SourceObjectId ([string](Get-QuorumProperty $one 'id')) `
             -DeviceId $deviceId `
             -HostnameOriginal $(if ($name) { $name.Original } else { $null }) `

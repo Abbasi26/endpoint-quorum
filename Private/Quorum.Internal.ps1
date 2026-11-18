@@ -86,7 +86,7 @@ function ConvertTo-QuorumTimestamp {
     return $date.ToString('yyyy-MM-dd HH:mm', [System.Globalization.CultureInfo]::InvariantCulture) + ' UTC'
 }
 
-function Get-QuorumAgeDays {
+function Get-QuorumAgeDayCount {
     param($When, [datetime]$AsOf)
     $date = ConvertTo-QuorumDate $When
     if ($null -eq $date) { return $null }
@@ -123,7 +123,7 @@ function ConvertTo-QuorumOsBuild {
     return $null
 }
 
-function Get-QuorumHostnameParts {
+function Split-QuorumHostname {
     param($Value)
     if ($null -eq $Value) { return $null }
     $original = ([string]$Value).Trim().TrimEnd('.')
@@ -150,7 +150,7 @@ function Format-QuorumBool {
     return 'No'
 }
 
-function New-QuorumAttribute {
+function ConvertTo-QuorumAttribute {
     param(
         [Parameter(Mandatory = $true)][string]$Label,
         $Value,
@@ -169,7 +169,7 @@ function New-QuorumAttribute {
 
 function Add-QuorumAttribute {
     param($List, $Label, $Value, $Key)
-    $attr = New-QuorumAttribute -Label $Label -Value $Value -Key $Key
+    $attr = ConvertTo-QuorumAttribute -Label $Label -Value $Value -Key $Key
     if ($null -ne $attr) { $List.Add($attr) }
 }
 

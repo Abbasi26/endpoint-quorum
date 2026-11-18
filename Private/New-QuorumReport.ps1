@@ -1,6 +1,6 @@
 Set-StrictMode -Version 1.0
 
-function New-QuorumReport {
+function Write-QuorumReport {
     param(
         [Parameter(Mandatory = $true)]$Model,
         [Parameter(Mandatory = $true)][string]$OutputPath,
@@ -21,8 +21,8 @@ function New-QuorumReport {
     if ($template.IndexOf('__QUORUM_DATA__') -lt 0) { throw 'Report template is missing the data placeholder.' }
     $html = $template.Replace('__QUORUM_DATA__', $json)
     Write-QuorumTextFile -Path $htmlPath -Content $html
-    Write-QuorumTextFile -Path $markdownPath -Content (New-QuorumMarkdown $Model)
-    Write-QuorumTextFile -Path $csvPath -Content (New-QuorumCsv $Model)
+    Write-QuorumTextFile -Path $markdownPath -Content (ConvertTo-QuorumMarkdown $Model)
+    Write-QuorumTextFile -Path $csvPath -Content (ConvertTo-QuorumCsv $Model)
     Write-QuorumTextFile -Path $jsonPath -Content ($json + "`n")
     if ($null -ne $RedactionMap) {
         $mapPath = Join-QuorumPath $OutputPath 'Quorum-RedactionMap.json'
@@ -41,7 +41,7 @@ function New-QuorumReport {
     }
 }
 
-function New-QuorumMarkdown {
+function ConvertTo-QuorumMarkdown {
     param($Model)
     $meta = $Model['meta']
     $sb = New-Object System.Text.StringBuilder
@@ -129,7 +129,7 @@ function New-QuorumMarkdown {
     return $sb.ToString()
 }
 
-function New-QuorumCsv {
+function ConvertTo-QuorumCsv {
     param($Model)
     $lines = New-Object System.Collections.Generic.List[string]
     $lines.Add('RuleId,Severity,Title,Hostname,QuorumId,MatchMethod,MatchConfidence,Sources,Evidence,WhyItMatters,Remediation')

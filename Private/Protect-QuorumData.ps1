@@ -20,7 +20,7 @@ function Protect-QuorumReport {
     $entries = New-Object System.Collections.Generic.List[object]
     $lookup = @{}
     foreach ($item in @($bag.Values)) {
-        $token = New-QuorumPseudonym -Salt $salt -Value $item.Lookup -Kind $item.Kind
+        $token = ConvertTo-QuorumPseudonym -Salt $salt -Value $item.Lookup -Kind $item.Kind
         $lookup[$item.Lookup] = $token
         $entries.Add([ordered]@{
             kind     = $item.Kind
@@ -39,7 +39,7 @@ function Protect-QuorumReport {
         Pattern = $pattern
         Map     = $lookup
     }
-    Update-QuorumSecretValue $Model $plan | Out-Null
+    ConvertTo-QuorumProtectedValue $Model $plan | Out-Null
     return ,$ordered
 }
 
@@ -86,7 +86,7 @@ function Add-QuorumSecret {
     $Bag[$lookup] = @{ Kind = $Kind; Value = $text; Lookup = $lookup }
 }
 
-function New-QuorumPseudonym {
+function ConvertTo-QuorumPseudonym {
     param([byte[]]$Salt, [string]$Value, [string]$Kind)
     $hmac = New-Object System.Security.Cryptography.HMACSHA256 (, $Salt)
     try {
@@ -101,20 +101,20 @@ function New-QuorumPseudonym {
     return "$prefix-$hex"
 }
 
-function Update-QuorumSecretValue {
+function ConvertTo-QuorumProtectedValue {
     param($Value, $Plan)
     if ($null -eq $Value) { return $null }
-    if ($Value -is [string]) { return (Update-QuorumSecretString $Value $Plan) }
+    if ($Value -is [string]) { return (ConvertTo-QuorumProtectedString $Value $Plan) }
     if ($Value -is [bool] -or (Test-QuorumNumber $Value)) { return $Value }
     if ($Value -is [System.Collections.IDictionary]) {
         foreach ($key in @($Value.Keys)) {
-            $Value[$key] = Update-QuorumSecretValue $Value[$key] $Plan
+            $Value[$key] = ConvertTo-QuorumProtectedValue $Value[$key] $Plan
         }
         return $Value
     }
     if ($Value -is [System.Collections.IList]) {
         for ($i = 0; $i -lt $Value.Count; $i++) {
-            $Value[$i] = Update-QuorumSecretValue $Value[$i] $Plan
+            $Value[$i] = ConvertTo-QuorumProtectedValue $Value[$i] $Plan
         }
         return $Value
     }
@@ -122,15 +122,15 @@ function Update-QuorumSecretValue {
     return $Value
 }
 
-function Update-QuorumSecretString {
+function ConvertTo-QuorumProtectedString {
     param([string]$Text, $Plan)
     if ([string]::IsNullOrEmpty($Text) -or [string]::IsNullOrEmpty($Plan.Pattern)) { return $Text }
     $regex = New-Object System.Text.RegularExpressions.Regex ($Plan.Pattern, ([System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::CultureInvariant))
-    $matches = $regex.Matches($Text)
-    if ($matches.Count -eq 0) { return $Text }
+    $foundMatches = $regex.Matches($Text)
+    if ($foundMatches.Count -eq 0) { return $Text }
     $sb = New-Object System.Text.StringBuilder
     $cursor = 0
-    foreach ($match in $matches) {
+    foreach ($match in $foundMatches) {
         if ($match.Index -gt $cursor) {
             [void]$sb.Append($Text.Substring($cursor, $match.Index - $cursor))
         }

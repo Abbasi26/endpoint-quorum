@@ -18,12 +18,12 @@ function ConvertTo-QuorumAgentIdentity {
     $items = New-Object System.Collections.Generic.List[object]
     foreach ($raw in @($Identity)) {
         if ($null -eq $raw) { continue }
-        $items.Add((New-QuorumAgentIdentity $raw $AsOf))
+        $items.Add((ConvertTo-QuorumAgentIdentityRecord $raw $AsOf))
     }
     return $items.ToArray()
 }
 
-function New-QuorumAgentIdentity {
+function ConvertTo-QuorumAgentIdentityRecord {
     param($Raw, [datetime]$AsOf)
     $id = ''
     $rawId = Get-QuorumProperty $Raw 'id'
@@ -73,7 +73,7 @@ function New-QuorumAgentIdentity {
         }
         $lastAttest = Get-QuorumProperty $lifecycle 'lastAttestationDateTime'
         if ($null -ne $lastAttest -and $null -ne $AsOf) {
-            $attestAge = Get-QuorumAgeDays $lastAttest $AsOf
+            $attestAge = Get-QuorumAgeDayCount $lastAttest $AsOf
         }
     }
 
@@ -91,5 +91,5 @@ function New-QuorumAgentIdentity {
         'agent.lastAttestationAgeDays'        = $attestAge
         'agent.disabledByMicrosoft'           = $(if ($null -ne $disabledBy) { [string]$disabledBy } else { $null })
     }
-    return New-QuorumEvalSubject -Subject 'agentIdentity' -Id ('agent:{0}' -f $id) -Kind 'agentIdentity' -DisplayName $name -Source 'Entra' -Facts $facts
+    return ConvertTo-QuorumEvalSubject -Subject 'agentIdentity' -Id ('agent:{0}' -f $id) -Kind 'agentIdentity' -DisplayName $name -Source 'Entra' -Facts $facts
 }

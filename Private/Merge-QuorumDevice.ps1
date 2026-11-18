@@ -17,7 +17,7 @@ function Merge-QuorumDevice {
     foreach ($rec in $incoming) {
         if ($rec.DeviceId) {
             if (-not $byId.ContainsKey($rec.DeviceId)) {
-                $cluster = New-QuorumCluster -Form 'deviceId'
+                $cluster = ConvertTo-QuorumCluster -Form 'deviceId'
                 $byId[$rec.DeviceId] = $cluster
                 $clusters.Add($cluster)
             }
@@ -31,7 +31,7 @@ function Merge-QuorumDevice {
     $stillLoose = New-Object System.Collections.Generic.List[object]
     foreach ($rec in $unmatched) {
         if (-not $rec.HostnameKey) {
-            $cluster = New-QuorumCluster -Form 'single'
+            $cluster = ConvertTo-QuorumCluster -Form 'single'
             $cluster.Records.Add($rec)
             $clusters.Add($cluster)
             continue
@@ -68,7 +68,7 @@ function Merge-QuorumDevice {
         $group = $looseGroups[$key]
         if ($key -eq '') {
             foreach ($rec in $group) {
-                $cluster = New-QuorumCluster -Form 'single'
+                $cluster = ConvertTo-QuorumCluster -Form 'single'
                 $cluster.Records.Add($rec)
                 $clusters.Add($cluster)
             }
@@ -85,7 +85,7 @@ function Merge-QuorumDevice {
                 }
             }
             if (-not $placed) {
-                $bucket = New-QuorumCluster -Form 'hostname'
+                $bucket = ConvertTo-QuorumCluster -Form 'hostname'
                 $bucket.Records.Add($rec)
                 $buckets.Add($bucket)
             }
@@ -130,7 +130,7 @@ function Merge-QuorumDevice {
     return ,$devices.ToArray()
 }
 
-function New-QuorumCluster {
+function ConvertTo-QuorumCluster {
     param([string]$Form)
     [pscustomobject]@{
         Records = New-Object System.Collections.Generic.List[object]

@@ -15,16 +15,16 @@ function Get-QuorumAccessToken {
     $useCertificate = [bool]($CertificateThumbprint -or $CertificatePath)
     if ($useCertificate) {
         $certificate = Get-QuorumCertificate -Thumbprint $CertificateThumbprint -Path $CertificatePath -Password $CertificatePassword
-        $assertion = New-QuorumClientAssertion -TenantId $TenantId -ClientId $ClientId -Certificate $certificate -AuthorityHost $authority
+        $assertion = ConvertTo-QuorumClientAssertion -TenantId $TenantId -ClientId $ClientId -Certificate $certificate -AuthorityHost $authority
         $graph = Request-QuorumClientToken -Authority $authority -TenantId $TenantId -ClientId $ClientId -Assertion $assertion -Scope $permissions.GraphApplicationScope
         $defender = Request-QuorumClientToken -Authority $authority -TenantId $TenantId -ClientId $ClientId -Assertion $assertion -Scope $permissions.DefenderApplicationScope
         return @{ Graph = $graph; Defender = $defender }
     }
 
-    Write-Host ''
-    Write-Host 'Quorum will sign in twice: once for Microsoft Graph, then once for Defender for Endpoint.'
-    Write-Host 'Both prompts are read-only. No write permission is requested.'
-    Write-Host ''
+    Write-Information '' -InformationAction Continue
+    Write-Information 'Quorum will sign in twice: once for Microsoft Graph, then once for Defender for Endpoint.' -InformationAction Continue
+    Write-Information 'Both prompts are read-only. No write permission is requested.' -InformationAction Continue
+    Write-Information '' -InformationAction Continue
     $graph = Request-QuorumDeviceCode -Authority $authority -TenantId $TenantId -ClientId $ClientId -Scope ($permissions.GraphDelegatedScopes -join ' ') -Title 'Microsoft Graph'
     $defender = Request-QuorumDeviceCode -Authority $authority -TenantId $TenantId -ClientId $ClientId -Scope ($permissions.DefenderDelegatedScopes -join ' ') -Title 'Defender for Endpoint'
     return @{ Graph = $graph; Defender = $defender }
@@ -51,10 +51,10 @@ function Request-QuorumDeviceCode {
     $tokenUri = "$Authority/$TenantId/oauth2/v2.0/token"
     $codeBody = @{ client_id = $ClientId; scope = $Scope }
     $code = Invoke-RestMethod -Method POST -Uri $codeUri -Body $codeBody -ContentType 'application/x-www-form-urlencoded'
-    Write-Host ("Sign in for {0}" -f $Title)
-    if ($code.message) { Write-Host $code.message }
-    else { Write-Host ("Open {0} and enter {1}" -f $code.verification_uri, $code.user_code) }
-    Write-Host ''
+    Write-Information ("Sign in for {0}" -f $Title) -InformationAction Continue
+    if ($code.message) { Write-Information $code.message -InformationAction Continue }
+    else { Write-Information ("Open {0} and enter {1}" -f $code.verification_uri, $code.user_code) -InformationAction Continue }
+    Write-Information '' -InformationAction Continue
 
     $interval = 5
     if ($code.interval) { $interval = [int]$code.interval }
@@ -130,7 +130,7 @@ function Get-QuorumCertificate {
     return $cert
 }
 
-function New-QuorumClientAssertion {
+function ConvertTo-QuorumClientAssertion {
     param(
         [Parameter(Mandatory = $true)][string]$TenantId,
         [Parameter(Mandatory = $true)][string]$ClientId,

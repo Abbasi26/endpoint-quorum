@@ -1,6 +1,6 @@
 Set-StrictMode -Version 1.0
 
-function New-QuorumViewModel {
+function ConvertTo-QuorumViewModel {
     param(
         $Device,
         $Finding,
@@ -97,9 +97,9 @@ function New-QuorumViewModel {
 function ConvertTo-QuorumDeviceView {
     param($Device, [datetime]$AsOf)
     $facts = Get-QuorumFact -Device $Device -AsOf $AsOf
-    $intune = ConvertTo-QuorumSourceView -Record @($Device.BySource.Intune) -Fact $facts -Source 'Intune'
-    $entra = ConvertTo-QuorumSourceView -Record @($Device.BySource.Entra) -Fact $facts -Source 'Entra'
-    $defender = ConvertTo-QuorumSourceView -Record @($Device.BySource.Defender) -Fact $facts -Source 'Defender'
+    $intune = ConvertTo-QuorumSourceView -Record @($Device.BySource.Intune) -Fact $facts
+    $entra = ConvertTo-QuorumSourceView -Record @($Device.BySource.Entra) -Fact $facts
+    $defender = ConvertTo-QuorumSourceView -Record @($Device.BySource.Defender) -Fact $facts
     $sources = New-Object System.Collections.Generic.List[string]
     if ($intune['present']) { $sources.Add('Intune') }
     if ($entra['present']) { $sources.Add('Entra') }
@@ -126,7 +126,7 @@ function ConvertTo-QuorumDeviceView {
 }
 
 function ConvertTo-QuorumSourceView {
-    param($Record, $Fact, [string]$Source)
+    param($Record, $Fact)
     $records = @($Record | Where-Object { $_ })
     if ($records.Count -eq 0) {
         return [ordered]@{ present = $false; attributes = @() }

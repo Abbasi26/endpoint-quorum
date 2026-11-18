@@ -143,24 +143,24 @@ function Invoke-QuorumRule {
             }
             foreach ($groupKey in @($groups.Keys | Sort-Object)) {
                 $members = @($groups[$groupKey] | Sort-Object HostnameDisplay, Id)
-                $findings.Add((New-QuorumFinding -Rule $rule -Device $members -Fact $factsById -GroupKey $groupKey))
+                $findings.Add((ConvertTo-QuorumFinding -Rule $rule -Device $members -Fact $factsById -GroupKey $groupKey))
             }
         }
         else {
             foreach ($one in @($matched | Sort-Object HostnameDisplay, Id)) {
-                $findings.Add((New-QuorumFinding -Rule $rule -Device @($one) -Fact $factsById -GroupKey $null))
+                $findings.Add((ConvertTo-QuorumFinding -Rule $rule -Device @($one) -Fact $factsById -GroupKey $null))
             }
         }
     }
     return ,$findings.ToArray()
 }
 
-function New-QuorumFinding {
+function ConvertTo-QuorumFinding {
     param($Rule, $Device, $Fact, $GroupKey)
     $devices = @($Device)
     $primary = $devices[0]
     $facts = $Fact[$primary.Id]
-    $evidence = New-QuorumEvidence -Fact $facts -Condition $Rule.Condition
+    $evidence = ConvertTo-QuorumEvidence -Fact $facts -Condition $Rule.Condition
     if ($devices.Count -gt 1) {
         $ids = @($devices | ForEach-Object { $_.Id })
         $names = @($devices | ForEach-Object { $_.HostnameDisplay })
@@ -197,7 +197,7 @@ function New-QuorumFinding {
     }
 }
 
-function New-QuorumEvidence {
+function ConvertTo-QuorumEvidence {
     param($Fact, $Condition)
     $wanted = @{
         'intune.complianceState'      = $true
@@ -264,7 +264,7 @@ function Get-QuorumConditionFact {
         if ($Condition.Contains('fact') -and $Condition['fact']) { $names.Add([string]$Condition['fact']) }
         foreach ($key in @('all', 'any', 'not')) {
             if (-not $Condition.Contains($key) -or $null -eq $Condition[$key]) { continue }
-            foreach ($child in (ConvertTo-QuorumConditionItems $Condition[$key])) {
+            foreach ($child in (ConvertTo-QuorumConditionItem $Condition[$key])) {
                 foreach ($name in (Get-QuorumConditionFact $child)) { $names.Add($name) }
             }
         }
@@ -278,7 +278,7 @@ function Test-QuorumCondition {
         throw "Rule ${RuleId} has a condition that is not a mapping."
     }
     if ($Condition.Contains('all')) {
-        $items = ConvertTo-QuorumConditionItems $Condition['all']
+        $items = ConvertTo-QuorumConditionItem $Condition['all']
         if ($items.Count -eq 0) { return $true }
         foreach ($item in $items) {
             if (-not (Test-QuorumCondition -Condition $item -Fact $Fact -Parameter $Parameter -RuleId $RuleId)) { return $false }
@@ -286,7 +286,7 @@ function Test-QuorumCondition {
         return $true
     }
     if ($Condition.Contains('any')) {
-        $items = ConvertTo-QuorumConditionItems $Condition['any']
+        $items = ConvertTo-QuorumConditionItem $Condition['any']
         foreach ($item in $items) {
             if (Test-QuorumCondition -Condition $item -Fact $Fact -Parameter $Parameter -RuleId $RuleId) { return $true }
         }
@@ -301,7 +301,7 @@ function Test-QuorumCondition {
     throw "Rule ${RuleId} has a condition without all, any, not, or fact."
 }
 
-function ConvertTo-QuorumConditionItems {
+function ConvertTo-QuorumConditionItem {
     param($Value)
     if ($null -eq $Value) { return @() }
     if ($Value -is [System.Collections.IDictionary]) {
@@ -389,7 +389,7 @@ function Compare-QuorumNumber {
 function Test-QuorumIn {
     param($Actual, $Expected)
     if ($null -eq $Actual -or $null -eq $Expected) { return $false }
-    $items = ConvertTo-QuorumConditionItems $Expected
+    $items = ConvertTo-QuorumConditionItem $Expected
     foreach ($item in @($items)) {
         if (Compare-QuorumEqual $Actual $item) { return $true }
     }

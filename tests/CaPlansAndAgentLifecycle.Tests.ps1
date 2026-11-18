@@ -104,7 +104,7 @@ Describe 'Agent ID lifecycle policy facts' {
                     isEnabled     = $true
                 }
             )
-            $pack = New-QuorumLifecyclePolicySet -Policy $raw
+            $pack = ConvertTo-QuorumLifecyclePolicySet -Policy $raw
             $pack.Policies.Count | Should -Be 2
             $pack.Policies[0].Facts['lifecyclePolicy.isAgentIdentity'] | Should -BeTrue
             $pack.Policies[0].Facts['lifecyclePolicy.isSystemDefault'] | Should -BeTrue

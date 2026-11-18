@@ -17,7 +17,7 @@ Describe 'Culture-invariant redaction' {
                     }
                 }
 
-                $actual = Update-QuorumSecretString `
+                $actual = ConvertTo-QuorumProtectedString `
                     -Text 'intune-lab INTUNE-LAB Intune-Lab' `
                     -Plan $plan
 

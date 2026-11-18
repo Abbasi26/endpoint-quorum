@@ -17,12 +17,12 @@ function ConvertTo-QuorumConditionalAccessPlan {
     $items = New-Object System.Collections.Generic.List[object]
     foreach ($raw in @($Plan)) {
         if ($null -eq $raw) { continue }
-        $items.Add((New-QuorumConditionalAccessPlan $raw))
+        $items.Add((ConvertTo-QuorumConditionalAccessPlanRecord $raw))
     }
     return $items.ToArray()
 }
 
-function New-QuorumConditionalAccessPlan {
+function ConvertTo-QuorumConditionalAccessPlanRecord {
     param($Raw)
     $id = ''
     $rawId = Get-QuorumProperty $Raw 'id'
@@ -107,5 +107,5 @@ function New-QuorumConditionalAccessPlan {
         'plan.hasSharedConditions' = $hasShared
         'plan.rulesExpanded'       = $rulesExpanded
     }
-    return New-QuorumEvalSubject -Subject 'conditionalAccessPlan' -Id ('plan:{0}' -f $id) -Kind 'conditionalAccessPlan' -DisplayName $name -Source 'Entra' -Facts $facts
+    return ConvertTo-QuorumEvalSubject -Subject 'conditionalAccessPlan' -Id ('plan:{0}' -f $id) -Kind 'conditionalAccessPlan' -DisplayName $name -Source 'Entra' -Facts $facts
 }

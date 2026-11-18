@@ -10,7 +10,7 @@ function Get-QuorumFact {
 
     $facts['intune.present'] = ($null -ne $intune)
     $facts['intune.complianceState'] = $(if ($intune) { $intune.ComplianceState } else { $null })
-    $facts['intune.lastSyncAgeDays'] = $(if ($intune) { Get-QuorumAgeDays $intune.ObservedAt $AsOf } else { $null })
+    $facts['intune.lastSyncAgeDays'] = $(if ($intune) { Get-QuorumAgeDayCount $intune.ObservedAt $AsOf } else { $null })
     $facts['intune.osBuild'] = $(if ($intune) { $intune.OsBuild } else { $null })
 
     $facts['entra.present'] = ($null -ne $entra)
@@ -19,7 +19,7 @@ function Get-QuorumFact {
     $facts['entra.isManaged'] = $(if ($entra) { $entra.IsManaged } else { $null })
     $facts['entra.trustType'] = $(if ($entra) { $entra.TrustType } else { $null })
     $facts['entra.operatingSystem'] = $(if ($entra) { $entra.OperatingSystem } else { $null })
-    $facts['entra.lastSignInAgeDays'] = $(if ($entra) { Get-QuorumAgeDays $entra.ObservedAt $AsOf } else { $null })
+    $facts['entra.lastSignInAgeDays'] = $(if ($entra) { Get-QuorumAgeDayCount $entra.ObservedAt $AsOf } else { $null })
     $facts['entra.osBuild'] = $(if ($entra) { $entra.OsBuild } else { $null })
 
     $facts['defender.present'] = ($null -ne $defender)
@@ -27,7 +27,7 @@ function Get-QuorumFact {
     $facts['defender.riskScore'] = $(if ($defender) { $defender.RiskScore } else { $null })
     $facts['defender.exposureLevel'] = $(if ($defender) { $defender.ExposureLevel } else { $null })
     $facts['defender.onboardingStatus'] = $(if ($defender) { $defender.OnboardingStatus } else { $null })
-    $facts['defender.lastSeenAgeDays'] = $(if ($defender) { Get-QuorumAgeDays $defender.ObservedAt $AsOf } else { $null })
+    $facts['defender.lastSeenAgeDays'] = $(if ($defender) { Get-QuorumAgeDayCount $defender.ObservedAt $AsOf } else { $null })
     $facts['defender.osBuild'] = $(if ($defender) { $defender.OsBuild } else { $null })
 
     $builds = New-Object System.Collections.Generic.List[string]

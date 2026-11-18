@@ -25,19 +25,19 @@ function ConvertTo-QuorumDirectoryObject {
         $types = @()
         if ($raw.PSObject.Properties['groupTypes'] -and $null -ne $raw.groupTypes) { $types = @($raw.groupTypes | ForEach-Object { [string]$_ }) }
         $dynamic = [bool](@($types | Where-Object { $_ -eq 'DynamicMembership' }).Count -gt 0)
-        $items.Add((New-QuorumDirectoryObject -Raw $raw -Kind 'group' -Dynamic $dynamic))
+        $items.Add((ConvertTo-QuorumDirectoryObjectRecord -Raw $raw -Kind 'group' -Dynamic $dynamic))
     }
     foreach ($raw in @($AdministrativeUnit)) {
         if ($null -eq $raw) { continue }
         $type = ''
         if ($raw.PSObject.Properties['membershipType'] -and $null -ne $raw.membershipType) { $type = [string]$raw.membershipType }
         $dynamic = ($type -eq 'Dynamic')
-        $items.Add((New-QuorumDirectoryObject -Raw $raw -Kind 'administrativeUnit' -Dynamic $dynamic))
+        $items.Add((ConvertTo-QuorumDirectoryObjectRecord -Raw $raw -Kind 'administrativeUnit' -Dynamic $dynamic))
     }
     return $items.ToArray()
 }
 
-function New-QuorumDirectoryObject {
+function ConvertTo-QuorumDirectoryObjectRecord {
     param($Raw, [string]$Kind, [bool]$Dynamic)
     $id = ''
     if ($Raw.PSObject.Properties['id'] -and $Raw.id) { $id = [string]$Raw.id }
@@ -73,7 +73,7 @@ function New-QuorumDirectoryObject {
     }
 }
 
-function New-QuorumEvalSubject {
+function ConvertTo-QuorumEvalSubject {
     param(
         [Parameter(Mandatory = $true)][string]$Subject,
         [Parameter(Mandatory = $true)][string]$Id,
@@ -111,7 +111,7 @@ function Get-QuorumItemCount {
     return $n
 }
 
-function Test-QuorumODataTypeContains {
+function Test-QuorumODataTypeContainment {
     param($Object, [string]$Token)
     $raw = Get-QuorumProperty $Object '@odata.type'
     if ($null -eq $raw) { return $false }

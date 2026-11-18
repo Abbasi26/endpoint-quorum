@@ -7,10 +7,11 @@ Notes for coding agents (and humans) working in `endpoint-quorum`. README.md, SP
 ```
 pwsh -NoProfile -Command "Invoke-Pester ./tests"
 pwsh -NoProfile -Command "Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error"
+pwsh -NoProfile -Command "Invoke-ScriptAnalyzer -Path . -Recurse -Severity Warning"
 pre-commit run --all-files
 ```
 
-All of these must pass. A pull request with failing CI is not ready for review.
+All of these must pass without analyzer findings. A pull request with failing CI is not ready for review. CI uses PSScriptAnalyzer 1.24.0.
 
 ## Rules
 

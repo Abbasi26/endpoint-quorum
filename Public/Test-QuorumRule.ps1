@@ -118,8 +118,8 @@ function Test-QuorumRuleCondition {
         return
     }
     switch (@($keys)[0]) {
-        'all' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItems $Condition['all'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.all[$i]" $Known; $i++ } }
-        'any' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItems $Condition['any'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.any[$i]" $Known; $i++ } }
+        'all' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItem $Condition['all'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.all[$i]" $Known; $i++ } }
+        'any' { $i = 0; foreach ($item in (ConvertTo-QuorumConditionItem $Condition['any'])) { Test-QuorumRuleCondition $item $Parameter $Errors "$Where.any[$i]" $Known; $i++ } }
         'not' { Test-QuorumRuleCondition $Condition['not'] $Parameter $Errors "$Where.not" $Known }
         'fact' {
             $name = [string]$Condition['fact']

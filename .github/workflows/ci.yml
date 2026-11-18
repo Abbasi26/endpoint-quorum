@@ -8,6 +8,34 @@ permissions:
   contents: read
 
 jobs:
+  psscriptanalyzer:
+    name: PSScriptAnalyzer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module PSScriptAnalyzer -RequiredVersion 1.24.0 -Scope CurrentUser -Force
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.24.0 -Force
+          Write-Host ("PSScriptAnalyzer " + (Get-Module PSScriptAnalyzer).Version)
+
+      - name: Analyze PowerShell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.24.0 -Force
+          $findings = @(Invoke-ScriptAnalyzer -Path . -Recurse -Severity Warning)
+          $findings |
+            Format-Table ScriptPath, Line, RuleName, Severity, Message -Wrap -AutoSize |
+            Out-String -Width 240 |
+            Write-Host
+          if ($findings.Count -gt 0) { exit 1 }
+
   pester:
     name: Pester (${{ matrix.name }})
     runs-on: ${{ matrix.os }}

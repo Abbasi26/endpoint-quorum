@@ -56,7 +56,7 @@ function Get-QuorumYamlIndent {
     return 0
 }
 
-function Remove-QuorumYamlComment {
+function Get-QuorumYamlCommentlessLine {
     param([string]$Text)
     if ([string]::IsNullOrEmpty($Text)) { return '' }
     $inQuote = $false
@@ -116,7 +116,7 @@ function Split-QuorumYamlKey {
         }
         if ($ch -eq ':') {
             $key = $Text.Substring(0, $i).Trim()
-            $rest = Remove-QuorumYamlComment $Text.Substring($i + 1)
+            $rest = Get-QuorumYamlCommentlessLine $Text.Substring($i + 1)
             if ($key.Length -ge 2 -and (($key.StartsWith('"') -and $key.EndsWith('"')) -or ($key.StartsWith("'") -and $key.EndsWith("'")))) {
                 $key = [string](ConvertFrom-QuorumYamlScalar $key)
             }
@@ -199,13 +199,13 @@ function Read-QuorumYamlMap {
         if ($trim.StartsWith('-')) { break }
         $pair = Split-QuorumYamlKey $trim $item.Number
         $Parser.Index++
-        $map[$pair.Key] = (Read-QuorumYamlValue $Parser $Indent $pair.Rest $item.Number)
+        $map[$pair.Key] = (Read-QuorumYamlValue $Parser $Indent $pair.Rest)
     }
     return ,$map
 }
 
 function Read-QuorumYamlValue {
-    param($Parser, [int]$Indent, [string]$Rest, [int]$Number)
+    param($Parser, [int]$Indent, [string]$Rest)
     if ($Rest -eq '|' -or $Rest -eq '|-' -or $Rest -eq '|+') {
         return (Read-QuorumYamlBlockScalar $Parser ($Indent + 1) $false)
     }
@@ -251,7 +251,7 @@ function Read-QuorumYamlList {
             $keyIndent = $Indent + 2
             $map = [ordered]@{}
             $pair = Split-QuorumYamlKey $rest $item.Number
-            $map[$pair.Key] = (Read-QuorumYamlValue $Parser $keyIndent $pair.Rest $item.Number)
+            $map[$pair.Key] = (Read-QuorumYamlValue $Parser $keyIndent $pair.Rest)
             while ($true) {
                 $nxt = Find-QuorumYamlContent $Parser
                 if ($null -eq $nxt) { break }
@@ -261,12 +261,12 @@ function Read-QuorumYamlList {
                 if ($ntrim.StartsWith('-')) { break }
                 $nextPair = Split-QuorumYamlKey $ntrim $nxt.Number
                 $Parser.Index++
-                $map[$nextPair.Key] = (Read-QuorumYamlValue $Parser $keyIndent $nextPair.Rest $nxt.Number)
+                $map[$nextPair.Key] = (Read-QuorumYamlValue $Parser $keyIndent $nextPair.Rest)
             }
             $list.Add($map)
             continue
         }
-        $list.Add((ConvertFrom-QuorumYamlScalar (Remove-QuorumYamlComment $rest)))
+        $list.Add((ConvertFrom-QuorumYamlScalar (Get-QuorumYamlCommentlessLine $rest)))
     }
     return ,$list.ToArray()
 }

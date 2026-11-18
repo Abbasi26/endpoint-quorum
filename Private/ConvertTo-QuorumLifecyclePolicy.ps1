@@ -23,12 +23,12 @@ function ConvertTo-QuorumLifecyclePolicy {
     $items = New-Object System.Collections.Generic.List[object]
     foreach ($raw in @($Policy)) {
         if ($null -eq $raw) { continue }
-        $items.Add((New-QuorumLifecyclePolicy $raw))
+        $items.Add((ConvertTo-QuorumLifecyclePolicyRecord $raw))
     }
     return $items.ToArray()
 }
 
-function New-QuorumLifecyclePolicy {
+function ConvertTo-QuorumLifecyclePolicyRecord {
     param($Raw)
     $id = ''
     $rawId = Get-QuorumProperty $Raw 'id'
@@ -37,7 +37,7 @@ function New-QuorumLifecyclePolicy {
     $display = Get-QuorumProperty $Raw 'displayName'
     if ($null -ne $display) { $name = [string]$display }
 
-    $isAgent = [bool](Test-QuorumODataTypeContains $Raw 'agentIdentityLifecyclePolicy')
+    $isAgent = [bool](Test-QuorumODataTypeContainment $Raw 'agentIdentityLifecyclePolicy')
     $source = ConvertTo-QuorumToken (Get-QuorumProperty $Raw 'policySource')
     $isDefault = ($source -eq 'systemdefault')
     $isEnabled = ConvertTo-QuorumNullableBool (Get-QuorumProperty $Raw 'isEnabled')
@@ -45,9 +45,9 @@ function New-QuorumLifecyclePolicy {
     $enforcementKind = $null
     $action = Get-QuorumProperty $Raw 'enforcementAction'
     if ($null -ne $action) {
-        if (Test-QuorumODataTypeContains $action 'disableThenDeleteEnforcementAction') { $enforcementKind = 'disableThenDelete' }
-        elseif (Test-QuorumODataTypeContains $action 'disableOnlyEnforcementAction') { $enforcementKind = 'disable' }
-        elseif (Test-QuorumODataTypeContains $action 'deleteOnlyEnforcementAction') { $enforcementKind = 'delete' }
+        if (Test-QuorumODataTypeContainment $action 'disableThenDeleteEnforcementAction') { $enforcementKind = 'disableThenDelete' }
+        elseif (Test-QuorumODataTypeContainment $action 'disableOnlyEnforcementAction') { $enforcementKind = 'disable' }
+        elseif (Test-QuorumODataTypeContainment $action 'deleteOnlyEnforcementAction') { $enforcementKind = 'delete' }
     }
 
     $grace = Get-QuorumProperty $Raw 'gracePeriodInDays'
@@ -78,10 +78,10 @@ function New-QuorumLifecyclePolicy {
         'lifecyclePolicy.enabledRuleCount'   = $enabledRuleCount
         'lifecyclePolicy.versionNumber'      = $version
     }
-    return New-QuorumEvalSubject -Subject 'lifecyclePolicy' -Id ('lifecyclePolicy:{0}' -f $id) -Kind 'lifecyclePolicy' -DisplayName $name -Source 'Entra' -Facts $facts
+    return ConvertTo-QuorumEvalSubject -Subject 'lifecyclePolicy' -Id ('lifecyclePolicy:{0}' -f $id) -Kind 'lifecyclePolicy' -DisplayName $name -Source 'Entra' -Facts $facts
 }
 
-function New-QuorumLifecyclePolicySet {
+function ConvertTo-QuorumLifecyclePolicySet {
     param($Policy)
     $policies = @(ConvertTo-QuorumLifecyclePolicy -Policy $Policy)
     $agentCount = 0
@@ -103,7 +103,7 @@ function New-QuorumLifecyclePolicySet {
         'lifecyclePolicySet.defaultPresent'          = $defaultPresent
         'lifecyclePolicySet.defaultEnabled'          = $defaultEnabled
     }
-    $set = New-QuorumEvalSubject -Subject 'lifecyclePolicySet' -Id 'lifecyclePolicySet:agentIdentity' -Kind 'lifecyclePolicySet' -DisplayName 'Agent ID lifecycle policies' -Source 'Entra' -Facts $facts
+    $set = ConvertTo-QuorumEvalSubject -Subject 'lifecyclePolicySet' -Id 'lifecyclePolicySet:agentIdentity' -Kind 'lifecyclePolicySet' -DisplayName 'Agent ID lifecycle policies' -Source 'Entra' -Facts $facts
     [pscustomobject]@{
         Policies = $policies
         Set      = $set

@@ -276,31 +276,31 @@ function Invoke-Quorum {
             $haveAgents = $gov.HaveAgents
         }
         else {
-            if ($IntunePath) { $haveIntune = $true; $intuneItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $IntunePath) $IntunePath }
-            if ($EntraPath) { $haveEntra = $true; $entraItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $EntraPath) $EntraPath }
-            if ($DefenderPath) { $haveDefender = $true; $defenderItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $DefenderPath) $DefenderPath }
+            if ($IntunePath) { $haveIntune = $true; $intuneItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $IntunePath) $IntunePath }
+            if ($EntraPath) { $haveEntra = $true; $entraItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $EntraPath) $EntraPath }
+            if ($DefenderPath) { $haveDefender = $true; $defenderItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $DefenderPath) $DefenderPath }
             if ($GroupPath -or $AdministrativeUnitPath) {
                 $haveDirectory = $true
                 $groupItems = $null; $unitItems = $null
-                if ($GroupPath) { $groupItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $GroupPath) $GroupPath }
-                if ($AdministrativeUnitPath) { $unitItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $AdministrativeUnitPath) $AdministrativeUnitPath }
+                if ($GroupPath) { $groupItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $GroupPath) $GroupPath }
+                if ($AdministrativeUnitPath) { $unitItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $AdministrativeUnitPath) $AdministrativeUnitPath }
                 $directoryObjects = @(ConvertTo-QuorumDirectoryObject -Group $groupItems -AdministrativeUnit $unitItems)
             }
             if ($ConditionalAccessPlanPath) {
                 $havePlans = $true
-                $planItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $ConditionalAccessPlanPath) $ConditionalAccessPlanPath
+                $planItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $ConditionalAccessPlanPath) $ConditionalAccessPlanPath
                 $caPlans = @(ConvertTo-QuorumConditionalAccessPlan -Plan $planItems)
             }
             if ($LifecyclePolicyPath) {
                 $haveLifecyclePolicies = $true
-                $policyItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $LifecyclePolicyPath) $LifecyclePolicyPath
-                $policyPack = New-QuorumLifecyclePolicySet -Policy $policyItems
+                $policyItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $LifecyclePolicyPath) $LifecyclePolicyPath
+                $policyPack = ConvertTo-QuorumLifecyclePolicySet -Policy $policyItems
                 $lifecyclePolicies = @($policyPack.Policies)
                 $lifecyclePolicySets = @($policyPack.Set)
             }
             if ($AgentIdentityPath) {
                 $haveAgents = $true
-                $agentItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $AgentIdentityPath) $AgentIdentityPath
+                $agentItems = Get-QuorumExportItem (Read-QuorumExportFile -Path $AgentIdentityPath) $AgentIdentityPath
                 $agentIdentities = @(ConvertTo-QuorumAgentIdentity -Identity $agentItems -AsOf $asOf)
             }
         }
@@ -347,12 +347,12 @@ function Invoke-Quorum {
     if ($haveAgents) {
         $collectors = @($collectors) + @([pscustomobject]@{ Source = 'Entra Agent ID identities'; Records = @($agentIdentities); Error = $null })
     }
-    $model = New-QuorumViewModel -Device $devices -Finding $findings -Rule $rules -Collector $collectors -AsOf $asOf -Mode $mode -TenantLabel $tenantLabel -Redacted $Redact.IsPresent
+    $model = ConvertTo-QuorumViewModel -Device $devices -Finding $findings -Rule $rules -Collector $collectors -AsOf $asOf -Mode $mode -TenantLabel $tenantLabel -Redacted $Redact.IsPresent
     $map = $null
     if ($Redact) {
         $map = Protect-QuorumReport -Model $model
     }
-    $written = New-QuorumReport -Model $model -OutputPath $OutputPath -RedactionMap $map
+    $written = Write-QuorumReport -Model $model -OutputPath $OutputPath -RedactionMap $map
     $highest = $null
     foreach ($finding in @($model['findings'])) {
         $sev = [string]$finding['severity']
@@ -363,8 +363,8 @@ function Invoke-Quorum {
         throw "Every collector failed. A partial report was still written to $($written.HtmlPath)."
     }
 
-    Write-Host ("Quorum wrote {0} findings for {1} devices." -f $model['meta']['findingCount'], $model['meta']['deviceCount'])
-    Write-Host ("HTML report: {0}" -f $written.HtmlPath)
+    Write-Information ("Quorum wrote {0} findings for {1} devices." -f $model['meta']['findingCount'], $model['meta']['deviceCount']) -InformationAction Continue
+    Write-Information ("HTML report: {0}" -f $written.HtmlPath) -InformationAction Continue
 
     $result = [pscustomobject]@{
         PSTypeName       = 'Quorum.Result'
@@ -425,7 +425,7 @@ function Read-QuorumGovernanceInventory {
     }
     if ($Inventory.PSObject.Properties['lifecyclePolicies']) {
         $havePolicies = $true
-        $pack = New-QuorumLifecyclePolicySet -Policy $Inventory.lifecyclePolicies
+        $pack = ConvertTo-QuorumLifecyclePolicySet -Policy $Inventory.lifecyclePolicies
         $policies = @($pack.Policies)
         $sets = @($pack.Set)
     }
@@ -469,7 +469,7 @@ function Read-QuorumExportFile {
     return $parsed
 }
 
-function Get-QuorumExportItems {
+function Get-QuorumExportItem {
     param($Document, [string]$Path)
     if ($null -eq $Document) { return @() }
     if ($Document -is [System.Array]) { return ,$Document }
