@@ -60,7 +60,7 @@ Describe 'Q013 dynamic memberOf rule' {
         $r = Invoke-Quorum -Demo -OutputPath (Join-Path $script:Work 'demo') 6>$null
         $q013 = @($r.Findings | Where-Object { $_['ruleId'] -eq 'Q013' })
         $q013.Count | Should -Be 3
-        $r.DeviceCount | Should -Be 50
+        $r.DeviceCount | Should -Be 51
     }
 
     It 'does not let device rules see directory objects' {

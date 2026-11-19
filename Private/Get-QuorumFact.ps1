@@ -48,6 +48,8 @@ function Get-QuorumFact {
     }
     $facts['compliance.disagrees'] = $disagrees
 
+    $facts['device.class'] = Get-QuorumDeviceClass -Device $Device
+
     $facts['hostname.key'] = $Device.HostnameKey
     $facts['hostname.duplicate'] = [bool]$Device.Duplicate
     $facts['hostname.duplicateCount'] = [int]$Device.DuplicateCount

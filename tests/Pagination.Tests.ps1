@@ -50,6 +50,3 @@ Describe 'Pagination limit' {
         }
     }
 }
-
-# Skipped: renaming, unrelated pagination changes, and executing tests in this read-only review.
-# Risk: inventories requiring more than 2000 pages still fail intentionally.

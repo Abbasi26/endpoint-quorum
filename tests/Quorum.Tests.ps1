@@ -125,14 +125,15 @@ Describe 'Rules' {
         $global:QuorumOld = [datetime]::new(2026, 1, 1, 12, 0, 0, [DateTimeKind]::Utc)
     }
 
-    It 'loads the thirteen starter rules' {
+    It 'loads the eighteen starter rules' {
         InModuleScope Quorum {
             $rules = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules'))
-            $rules.Count | Should -Be 13
+            $rules.Count | Should -Be 18
             $ids = @($rules | ForEach-Object { $_.Id } | Sort-Object)
             $ids | Should -Contain 'Q001'
             $ids | Should -Contain 'Q013'
-            @($rules | Where-Object { $_.Enabled }).Count | Should -Be 13
+            $ids | Should -Contain 'Q018'
+            @($rules | Where-Object { $_.Enabled }).Count | Should -Be 18
         }
     }
 
@@ -204,6 +205,17 @@ condition:
             $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
             $findings.Count | Should -Be 1
             $findings[0].RuleId | Should -Be 'Q002'
+        }
+    }
+
+    It 'does not flag an enabled Windows Server device that Intune does not know' {
+        InModuleScope Quorum {
+            $entra = New-QuorumTestRecord -Source 'Entra' -DeviceId '40000000-0000-4000-8000-0000000000e9' -Hostname 'unmanaged-server' -ObservedAt $global:QuorumRecent -AccountEnabled $true -OperatingSystem 'Windows Server' -OsBuild '20348'
+            $devices = (Merge-QuorumDevice -Record @($entra))
+            $rule = (Import-QuorumRule -Path (Join-QuorumPath $script:QuorumModuleRoot 'rules' 'Q002-entra-enabled-no-intune.yaml'))
+            $findings = (Invoke-QuorumRule -Device $devices -Rule $rule -AsOf $global:QuorumAsOf)
+            $findings.Count | Should -Be 0
+            (Get-QuorumDeviceClass -Device $devices[0]) | Should -Be 'windows-server'
         }
     }
 

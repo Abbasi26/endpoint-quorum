@@ -7,6 +7,7 @@ $script:QuorumKnownFacts = @(
     'defender.present', 'defender.healthStatus', 'defender.riskScore', 'defender.exposureLevel',
     'defender.onboardingStatus', 'defender.lastSeenAgeDays', 'defender.osBuild',
     'os.buildMismatch', 'os.builds', 'compliance.disagrees',
+    'device.class',
     'hostname.key', 'hostname.duplicate', 'hostname.duplicateCount',
     'match.method', 'match.confidence', 'match.score', 'sources.count'
 )
@@ -20,7 +21,8 @@ function Test-QuorumRule {
     .DESCRIPTION
         Checks every YAML rule in a directory (or one file) for the required fields,
         a valid severity, subject and id, duplicate ids, unknown facts (device facts for
-        device rules, directory.* facts for subject: directoryObject), unknown operators,
+        device rules; directory.*, plan.*, lifecyclePolicy.*, lifecyclePolicySet.*, or
+        agent.* facts for the matching subject), unknown operators,
         predicates without a value, and valueFrom references to parameters that do
         not exist. An unknown fact never matches at run time, so a typo would
         otherwise silently disable a rule. Nothing is evaluated against devices.
@@ -77,9 +79,16 @@ function Test-QuorumRule {
             }
             $known = $script:QuorumKnownFacts
             if ($rule.Subject -eq 'directoryObject') { $known = $script:QuorumDirectoryFacts }
+            elseif ($rule.Subject -eq 'conditionalAccessPlan') { $known = $script:QuorumConditionalAccessPlanFacts }
+            elseif ($rule.Subject -eq 'lifecyclePolicy') { $known = $script:QuorumLifecyclePolicyFacts }
+            elseif ($rule.Subject -eq 'lifecyclePolicySet') { $known = $script:QuorumLifecyclePolicySetFacts }
+            elseif ($rule.Subject -eq 'agentIdentity') { $known = $script:QuorumAgentIdentityFacts }
             Test-QuorumRuleCondition -Condition $rule.Condition -Parameter $rule.Parameters -Errors $errors -Where 'condition' -Known $known
             if ($rule.GroupBy -and $known -notcontains $rule.GroupBy) {
                 $errors.Add("groupBy uses unknown fact '$($rule.GroupBy)'.")
+            }
+            if (-not (Test-QuorumRuleRemediation $rule.Remediation)) {
+                $errors.Add("remediation is too short to be actionable. Write at least one full sentence that names a console and a check.")
             }
         }
         catch {
@@ -136,4 +145,15 @@ function Test-QuorumRuleCondition {
             }
         }
     }
+}
+
+function Test-QuorumRuleRemediation {
+    param([string]$Remediation)
+    if ([string]::IsNullOrEmpty($Remediation)) { return $false }
+    $text = $Remediation.Trim()
+    if ($text -eq '') { return $false }
+    $words = $text -split '\s+'
+    if (@($words).Count -lt 4) { return $false }
+    if (-not ($text -match '\.' -or $text -match '\?' -or $text -match '!')) { return $false }
+    return $true
 }

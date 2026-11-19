@@ -61,6 +61,7 @@ function New-QuorumDirectoryObject {
     }
     [pscustomobject]@{
         PSTypeName      = 'Quorum.DirectoryObject'
+        Subject         = 'directoryObject'
         Id              = ('{0}:{1}' -f $prefix, $id)
         Kind            = $Kind
         HostnameDisplay = $name
@@ -71,3 +72,51 @@ function New-QuorumDirectoryObject {
         Facts           = $facts
     }
 }
+
+function New-QuorumEvalSubject {
+    param(
+        [Parameter(Mandatory = $true)][string]$Subject,
+        [Parameter(Mandatory = $true)][string]$Id,
+        [string]$Kind,
+        [string]$DisplayName,
+        [string]$Source = 'Entra',
+        $Facts
+    )
+    if ($null -eq $Facts) { $Facts = @{} }
+    $name = $DisplayName
+    if ([string]::IsNullOrWhiteSpace($name)) { $name = $Id }
+    [pscustomobject]@{
+        PSTypeName      = 'Quorum.EvalSubject'
+        Subject         = $Subject
+        Id              = $Id
+        Kind            = $Kind
+        HostnameDisplay = $name
+        MatchMethod     = $Subject
+        MatchConfidence = 'n/a'
+        MatchScore      = $null
+        Records         = @([pscustomobject]@{ Source = $Source })
+        Facts           = $Facts
+    }
+}
+
+function Get-QuorumItemCount {
+    param($Value)
+    if ($null -eq $Value) { return $null }
+    $n = 0
+    foreach ($item in @($Value)) {
+        if ($null -eq $item) { continue }
+        if ($item -is [string] -and [string]::IsNullOrWhiteSpace([string]$item)) { continue }
+        $n++
+    }
+    return $n
+}
+
+function Test-QuorumODataTypeContains {
+    param($Object, [string]$Token)
+    $raw = Get-QuorumProperty $Object '@odata.type'
+    if ($null -eq $raw) { return $false }
+    $text = ([string]$raw).Trim().TrimStart('#').ToLowerInvariant()
+    $needle = $Token.ToLowerInvariant()
+    return $text.Contains($needle)
+}
+
