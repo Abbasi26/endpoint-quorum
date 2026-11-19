@@ -1,0 +1,84 @@
+# Installs a pinned PowerShell 7 release, verifies its SHA-256, and puts it
+# first on PATH, so every later `shell: pwsh` step in the job runs that
+# version instead of the runner's preinstalled pwsh.
+#
+# Supported in CI: PowerShell 7.6 (LTS, default) and PowerShell 7.7.
+# PowerShell 7.4 (LTS) and 7.5 reached end of support on 10-Nov-2026.
+# https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle
+#
+# The default SHA-256 values come from hashes.sha256 of the v7.6.10 release:
+# https://github.com/PowerShell/PowerShell/releases/tag/v7.6.10
+# PowerShell 7.7.0 (pass as inputs), from hashes.sha256 of
+# https://github.com/PowerShell/PowerShell/releases/tag/v7.7.0
+#   linux-x64.tar.gz c89d9c682d2c403dfe726f3df948e359675235a5bd6fab535776de69729ca0cb
+#   win-x64.zip      7c74e03b20a75b59715847439d046a6214b1863ee79b187872980f139bb4a05f
+name: Install PowerShell 7
+description: Download a pinned PowerShell 7 release (default 7.6 LTS), verify its SHA-256, and put it first on PATH.
+inputs:
+  version:
+    description: PowerShell release to install. Pass both sha256 inputs when you change it.
+    default: '7.6.10'
+  sha256-linux:
+    description: SHA-256 of powershell-<version>-linux-x64.tar.gz.
+    default: 'e261cabc91c78a9afe8d1e5f24731ab0d38204735ab2ec94b0af55102652e10d'
+  sha256-windows:
+    description: SHA-256 of PowerShell-<version>-win-x64.zip.
+    default: '7d871531806eb1646264e4bbabd9f0c30c23355591bc756bb9909448c29ae166'
+runs:
+  using: composite
+  steps:
+    - name: Install PowerShell ${{ inputs.version }} (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        PWSH_VERSION: ${{ inputs.version }}
+        PWSH_SHA256: ${{ inputs.sha256-linux }}
+      run: |
+        set -euo pipefail
+        asset="powershell-${PWSH_VERSION}-linux-x64.tar.gz"
+        archive="${RUNNER_TEMP}/${asset}"
+        curl -fsSL --retry 3 -o "${archive}" "https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/${asset}"
+        echo "${PWSH_SHA256}  ${archive}" | sha256sum -c -
+        dest="${RUNNER_TEMP}/pwsh"
+        mkdir -p "${dest}"
+        tar -xzf "${archive}" -C "${dest}"
+        chmod +x "${dest}/pwsh"
+
+    - name: Prepend the installed pwsh to PATH (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: echo "${RUNNER_TEMP}/pwsh" >> "${GITHUB_PATH}" # zizmor: ignore[github-env]
+
+    - name: Install PowerShell ${{ inputs.version }} (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      env:
+        PWSH_VERSION: ${{ inputs.version }}
+        PWSH_SHA256: ${{ inputs.sha256-windows }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $ProgressPreference = 'SilentlyContinue'
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $asset = "PowerShell-$env:PWSH_VERSION-win-x64.zip"
+        $archive = Join-Path $env:RUNNER_TEMP $asset
+        Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/PowerShell/PowerShell/releases/download/v$env:PWSH_VERSION/$asset" -OutFile $archive
+        $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+        if ($actual -ne $env:PWSH_SHA256) { throw "SHA-256 mismatch for ${asset}: expected $env:PWSH_SHA256, got $actual" }
+        $dest = Join-Path $env:RUNNER_TEMP "pwsh"
+        Expand-Archive -LiteralPath $archive -DestinationPath $dest -Force
+
+    - name: Prepend the installed pwsh to PATH (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        $ErrorActionPreference = 'Stop'
+        [System.IO.File]::AppendAllText($env:GITHUB_PATH, (Join-Path $env:RUNNER_TEMP "pwsh") + "`n")
+
+    - name: Assert pwsh is ${{ inputs.version }}
+      shell: pwsh
+      env:
+        PWSH_VERSION: ${{ inputs.version }}
+      run: |
+        $actual = $PSVersionTable.PSVersion.ToString()
+        Write-Host "pwsh $actual at $((Get-Process -Id $PID).Path)"
+        if ($actual -ne $env:PWSH_VERSION) { throw "Expected pwsh $env:PWSH_VERSION, got $actual" }

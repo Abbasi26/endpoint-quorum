@@ -1,0 +1,23 @@
+id: Q014
+title: Conditional Access policy plan has no enforcing rule
+severity: medium
+enabled: true
+subject: conditionalAccessPlan
+description: >
+  A Conditional Access policy plan has no rule in the enabled (enforcing)
+  state. Every rule is missing, disabled, or enabled for reporting only.
+whyItMatters: >
+  Policy plans are evaluated as independent rules at sign-in, alongside
+  existing Conditional Access policies. A plan with no enforcing rule does
+  not contribute any grant or session controls, so the access intent the
+  plan was created for is not actually enforced.
+remediation: >
+  Open the plan in Entra ID > Conditional Access > Policy plans (preview)
+  and enable at least one rule, or remove the plan if it is unused. Plans
+  are a preview feature and are read from Microsoft Graph beta
+  (/identity/conditionalAccess/plans). Microsoft Learn: What are Microsoft
+  Entra Conditional Access policy plans? (preview).
+condition:
+  fact: plan.hasEnforcingRule
+  op: eq
+  value: false

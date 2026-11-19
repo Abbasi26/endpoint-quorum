@@ -1,0 +1,21 @@
+id: Q015
+title: Conditional Access policy plan has no owners
+severity: low
+enabled: true
+subject: conditionalAccessPlan
+description: >
+  A Conditional Access policy plan has an empty owners list. Owners are
+  metadata only; they do not grant permission to edit the plan.
+whyItMatters: >
+  Microsoft documents plan owners as the way to record who is accountable
+  for the plan and for the impact of later changes. A plan with no owners
+  is harder to review when a shared condition or rule needs to change.
+remediation: >
+  Add at least one user or group as a plan owner in Entra ID > Conditional
+  Access > Policy plans (preview). This does not change who can edit the
+  plan or how the plan is enforced at runtime. Microsoft Learn: What are
+  Microsoft Entra Conditional Access policy plans? (preview).
+condition:
+  fact: plan.hasOwners
+  op: eq
+  value: false

@@ -352,7 +352,7 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
       }
       if (state.rule !== "all" && (d.findingRuleIds || []).indexOf(state.rule) < 0) return false;
       if (!q) return true;
-      return matchText([d.hostname, d.id, d.matchMethod, (d.sources || []).join(" ")]).indexOf(q) >= 0;
+      return matchText([d.hostname, d.id, d.matchMethod, d.deviceClass, (d.sources || []).join(" ")]).indexOf(q) >= 0;
     });
   }
   function snippet(f) {
@@ -394,9 +394,24 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
     });
     return h("section", { class: "source" }, [h("h3", { text: title })].concat(rows));
   }
+
+  function classLabel(device) {
+    var map = {
+      "windows-server": "Windows Server",
+      "windows": "Windows",
+      "macos": "macOS",
+      "ios": "iOS",
+      "android": "Android",
+      "linux": "Linux"
+    };
+    if (!device || !device.deviceClass) return "";
+    return map[device.deviceClass] || device.deviceClass;
+  }
   function deviceBlock(device) {
+    var klass = classLabel(device);
     var head = h("div", {}, [
       h("div", { class: "host", text: device.hostname }),
+      klass ? h("div", { class: "conf", text: "Device class: " + klass }) : null,
       h("div", { class: "conf", text: matchLine(device) }),
       sourceDots(device.sources)
     ]);
@@ -555,6 +570,7 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
       head.appendChild(h("div", { class: "sevtag " + (d.findingRuleIds && d.findingRuleIds.length ? "sev-medium" : "sev-low"), text: label }));
       head.appendChild(h("div", { class: "body" }, [
         h("div", { class: "title", text: d.hostname }),
+        classLabel(d) ? h("div", { class: "conf", text: classLabel(d) }) : null,
         h("div", { class: "conf", text: matchLine(d) }),
         sourceDots(d.sources),
         d.findingRuleIds && d.findingRuleIds.length ? h("div", { class: "snip", text: d.findingRuleIds.join(", ") }) : null

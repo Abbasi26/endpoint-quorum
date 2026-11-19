@@ -117,6 +117,7 @@ function ConvertTo-QuorumDeviceView {
         duplicate        = [bool]$Device.Duplicate
         duplicateCount   = [int]$Device.DuplicateCount
         sources          = $sources.ToArray()
+        deviceClass      = $(if ($facts['device.class']) { [string]$facts['device.class'] } else { 'unknown' })
         findingRuleIds   = (New-Object System.Collections.Generic.List[string])
         intune           = $intune
         entra            = $entra
@@ -235,6 +236,7 @@ function Get-QuorumFactLabel {
         'defender.osBuild'          = 'Defender OS build'
         'os.builds'                 = 'OS builds'
         'os.buildMismatch'          = 'OS build mismatch'
+        'device.class'              = 'Device class'
         'hostname.duplicateCount'   = 'Devices with this hostname'
         'compliance.disagrees'      = 'Compliance disagrees'
         'match.method'              = 'Match method'
@@ -242,6 +244,11 @@ function Get-QuorumFactLabel {
         'quorum.ids'                = 'Quorum ids'
         'device.count'              = 'Device count'
         'hostname.names'            = 'Hostnames'
+        'directory.kind'            = 'Directory object'
+        'directory.membershipRule'  = 'Membership rule'
+        'directory.processingState' = 'Rule processing'
+        'directory.dynamic'         = 'Dynamic membership'
+        'directory.usesMemberOf'    = 'Uses memberOf'
     }
     if ($labels.ContainsKey($Key)) { return $labels[$Key] }
     return $Key
