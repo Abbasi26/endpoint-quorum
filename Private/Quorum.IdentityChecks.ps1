@@ -46,10 +46,13 @@ $script:QuorumIdentityTelephonyMethods = @('mobilePhone', 'alternateMobilePhone'
 # sign-in only, security questions are not an MFA method, and a password is not MFA.
 $script:QuorumIdentityNonMfaMethods = @('email', 'securityQuestion', 'securityQuestions', 'password')
 
-# Other known MFA method names. A name outside all three lists is treated as a
-# non-telephony MFA method, so the user is not flagged, and the name is listed
-# in the run notes.
-$script:QuorumIdentityKnownMfaMethods = @('microsoftAuthenticatorPush', 'passKeyDeviceBound')
+# Recognized alternatives that can satisfy MFA without a phone call or SMS.
+$script:QuorumIdentityKnownMfaMethods = @(
+    'microsoftAuthenticatorPush', 'microsoftAuthenticatorPasswordless',
+    'passKeyDeviceBound', 'passKeySynced', 'passKeyDeviceBoundAuthenticator',
+    'passKeyDeviceBoundWindowsHello', 'fido2', 'fido2SecurityKey', 'windowsHelloForBusiness',
+    'softwareOneTimePasscode', 'hardwareOneTimePasscode'
+)
 
 # E003: default expected Windows security baseline version, and baseline display
 # names that are not the Windows baseline.
@@ -188,17 +191,17 @@ function Test-QuorumIdentitySmsVoice {
         $telephony = @($methods | Where-Object { $script:QuorumIdentityTelephonyMethods -contains $_ })
         if ($telephony.Count -eq 0) { continue }
         $others = @($methods | Where-Object { $script:QuorumIdentityTelephonyMethods -notcontains $_ })
-        foreach ($name in @($others | Where-Object { $known -notcontains $_ })) {
-            $note = "Unknown authentication method '$name' was treated as a non-telephony MFA method, so the account was not flagged."
-            if (-not $Data.Notes.Contains($note)) { $Data.Notes.Add($note) }
-        }
-        $blocking = @($others | Where-Object { $script:QuorumIdentityNonMfaMethods -notcontains $_ })
+        $unknown = @($others | Where-Object { $known -notcontains $_ })
+        $blocking = @($others | Where-Object { $script:QuorumIdentityKnownMfaMethods -contains $_ })
         if ($blocking.Count -gt 0) { continue }
 
         $isAdmin = ConvertTo-QuorumNullableBool (Get-QuorumProperty $user 'isAdmin')
         $isAdminValue = ($null -ne $isAdmin -and $isAdmin)
         $userType = [string](Get-QuorumProperty $user 'userType')
         $noteParts = New-Object System.Collections.Generic.List[string]
+        if ($unknown.Count -gt 0) {
+            $noteParts.Add("Unrecognized methods ($($unknown -join ', ')) could not be confirmed as an MFA alternative. Review this finding manually.")
+        }
         if ($isAdminValue -or $userType -eq 'guest') {
             $noteParts.Add('The date may be 2027-07-01 if this account is a Global Administrator or an external user. The export cannot tell a Global Administrator from another admin role, nor an external user from an internal guest.')
         }
