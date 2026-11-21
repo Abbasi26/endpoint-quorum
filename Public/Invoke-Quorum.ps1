@@ -91,6 +91,15 @@ function Invoke-Quorum {
         Include lifecycle.effectiveGoverningPolicy when you can. Rules with subject: agentIdentity
         (such as Q017 and Q018) evaluate these objects. Live collection does not read agent identities.
 
+    .PARAMETER BaselinePath
+        Path to a Quorum-Findings.json from a previous run. When provided, the current run is
+        compared against the baseline and three finding sets are reported:
+        New (present now, absent in baseline), Resolved (present in baseline, absent now),
+        and Unchanged (present in both). The HTML report shows counters and a filter for current findings.
+        The Markdown summary includes the three counters. The JSON output adds a
+        meta.comparison object with the three arrays of finding keys and counts.
+        -FailOnSeverity and HighestSeverity continue to operate on the full current finding set.
+
     .PARAMETER AsOf
         Reference time for ages in an offline import. Defaults to the inventory asOf,
         or the current UTC time.
@@ -167,7 +176,8 @@ function Invoke-Quorum {
         [int]$FailOnCount,
         [string]$GraphBaseUri = 'https://graph.microsoft.com/v1.0',
         [string]$DefenderBaseUri = 'https://api.security.microsoft.com',
-        [string]$AuthorityHost = 'https://login.microsoftonline.com'
+        [string]$AuthorityHost = 'https://login.microsoftonline.com',
+        [string]$BaselinePath
     )
 
     $ErrorActionPreference = 'Stop'
@@ -185,6 +195,21 @@ function Invoke-Quorum {
     if ($TenantId -and -not $ClientId) { throw '-ClientId is required for a live collection.' }
     if ($CertificateThumbprint -and $CertificatePath) {
         throw 'Use either -CertificateThumbprint or -CertificatePath, not both.'
+    }
+
+    # Load and validate BaselinePath if provided
+    $baselineFindings = $null
+    if ($BaselinePath) {
+        if (-not (Test-Path -LiteralPath $BaselinePath -PathType Leaf)) {
+            throw "Baseline file not found: $BaselinePath"
+        }
+        $baselineText = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $BaselinePath).ProviderPath)
+        try { $baselineDoc = ConvertFrom-Json -InputObject $baselineText }
+        catch { throw "Baseline file $BaselinePath is not valid JSON: $(Get-QuorumErrorMessage $_)" }
+        if (-not $baselineDoc.PSObject.Properties['findings'] -or -not ($baselineDoc.findings -is [System.Array])) {
+            throw "Baseline file $BaselinePath does not contain a 'findings' array."
+        }
+        $baselineFindings = @($baselineDoc.findings)
     }
 
     if (-not $OutputPath) {
@@ -347,7 +372,7 @@ function Invoke-Quorum {
     if ($haveAgents) {
         $collectors = @($collectors) + @([pscustomobject]@{ Source = 'Entra Agent ID identities'; Records = @($agentIdentities); Error = $null })
     }
-    $model = New-QuorumViewModel -Device $devices -Finding $findings -Rule $rules -Collector $collectors -AsOf $asOf -Mode $mode -TenantLabel $tenantLabel -Redacted $Redact.IsPresent
+    $model = New-QuorumViewModel -Device $devices -Finding $findings -Rule $rules -Collector $collectors -AsOf $asOf -Mode $mode -TenantLabel $tenantLabel -Redacted $Redact.IsPresent -BaselineFinding $baselineFindings
     $map = $null
     if ($Redact) {
         $map = Protect-QuorumReport -Model $model

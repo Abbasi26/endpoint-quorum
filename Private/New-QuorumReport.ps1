@@ -56,6 +56,12 @@ function New-QuorumMarkdown {
     [void]$sb.AppendLine('| Findings | ' + $meta['findingCount'] + ' |')
     [void]$sb.AppendLine('| Devices with no finding | ' + $meta['clearCount'] + ' |')
     [void]$sb.AppendLine('| Redacted | ' + $(if ($meta['redacted']) { 'yes' } else { 'no' }) + ' |')
+    if ($meta['comparison']) {
+        $c = $meta['comparison']
+        [void]$sb.AppendLine('| New findings | ' + $c['newCount'] + ' |')
+        [void]$sb.AppendLine('| Resolved findings | ' + $c['resolvedCount'] + ' |')
+        [void]$sb.AppendLine('| Unchanged findings | ' + $c['unchangedCount'] + ' |')
+    }
     [void]$sb.AppendLine('')
     [void]$sb.AppendLine((ConvertTo-QuorumMarkdownCell $meta['note']))
     [void]$sb.AppendLine('')
