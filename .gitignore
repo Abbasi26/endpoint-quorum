@@ -4,3 +4,4 @@ uploads/
 *.pem
 *.pfx.txt
 Quorum-RedactionMap.json
+.tmp/

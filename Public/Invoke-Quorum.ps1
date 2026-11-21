@@ -48,8 +48,9 @@ function Invoke-Quorum {
 
     .PARAMETER InventoryPath
         Evaluate an exported inventory offline. Same shape as data/demo-inventory.json:
-        an object with intune, entra, and defender arrays of raw API objects and an
-        optional asOf timestamp. No sign-in, no network.
+        an object with intune, entra, and defender arrays of raw API objects, optional
+        groups, administrativeUnits, conditionalAccessPlans, lifecyclePolicies, and
+        agentIdentities arrays, and an optional asOf timestamp. No sign-in, no network.
 
     .PARAMETER IntunePath
         Offline Intune export: a JSON file with the managedDevices objects, either as an
@@ -62,6 +63,34 @@ function Invoke-Quorum {
     .PARAMETER DefenderPath
         Offline Defender for Endpoint machines export (array or API page with value).
 
+    .PARAMETER GroupPath
+        Offline Entra groups export (array or Graph page with value), for example from
+        GET /v1.0/groups?$select=id,displayName,groupTypes,membershipRule,membershipRuleProcessingState.
+        Rules with subject: directoryObject (such as Q013) evaluate these objects.
+
+    .PARAMETER AdministrativeUnitPath
+        Offline Entra administrative units export (array or Graph page with value), for example from
+        GET /v1.0/directory/administrativeUnits?$select=id,displayName,membershipType,membershipRule,membershipRuleProcessingState.
+
+    .PARAMETER ConditionalAccessPlanPath
+        Offline Conditional Access policy plans export (array or Graph page with value), for example from
+        GET https://graph.microsoft.com/beta/identity/conditionalAccess/plans with each plan's rules
+        inlined (GET .../plans/{id}/rules). This API is documented in Graph beta only; policy plans
+        are a preview feature. Rules with subject: conditionalAccessPlan (such as Q014 and Q015)
+        evaluate these objects. Live collection does not read plans.
+
+    .PARAMETER LifecyclePolicyPath
+        Offline Entra lifecycle policies export (array or Graph page with value), for example from
+        GET https://graph.microsoft.com/v1.0/identityGovernance/lifecycleWorkflows/lifecyclePolicies.
+        Agent identity policies have @odata.type agentIdentityLifecyclePolicy. Guest policies are
+        ignored. Rules with subject: lifecyclePolicySet (such as Q016) evaluate the set.
+
+    .PARAMETER AgentIdentityPath
+        Offline Entra Agent ID identities export (array or Graph page with value), for example from
+        GET https://graph.microsoft.com/v1.0/servicePrincipals/microsoft.graph.agentIdentity?$expand=sponsors,owners,lifecycle.
+        Include lifecycle.effectiveGoverningPolicy when you can. Rules with subject: agentIdentity
+        (such as Q017 and Q018) evaluate these objects. Live collection does not read agent identities.
+
     .PARAMETER AsOf
         Reference time for ages in an offline import. Defaults to the inventory asOf,
         or the current UTC time.
@@ -69,6 +98,12 @@ function Invoke-Quorum {
     .PARAMETER FailOnSeverity
         After the report is written, throw if any finding is at this severity or worse
         (critical, high, medium, low, info). Use it in scheduled tasks and pipelines.
+
+    .PARAMETER FailOnCount
+        After the report is written, throw if the number of findings reaches this threshold.
+        With -FailOnSeverity: counts only findings at that severity or worse.
+        Without -FailOnSeverity: counts all findings.
+        Use it in scheduled tasks and pipelines. Named binding recommended.
 
     .PARAMETER GraphBaseUri
         Microsoft Graph base URI, including the version. Default: https://graph.microsoft.com/v1.0
@@ -120,18 +155,26 @@ function Invoke-Quorum {
         [string]$IntunePath,
         [string]$EntraPath,
         [string]$DefenderPath,
+        [string]$GroupPath,
+        [string]$AdministrativeUnitPath,
+        [string]$ConditionalAccessPlanPath,
+        [string]$LifecyclePolicyPath,
+        [string]$AgentIdentityPath,
         [Nullable[datetime]]$AsOf,
         [ValidateSet('critical', 'high', 'medium', 'low', 'info')]
         [string]$FailOnSeverity,
+        [ValidateRange(1, 2147483647)]
+        [int]$FailOnCount,
         [string]$GraphBaseUri = 'https://graph.microsoft.com/v1.0',
         [string]$DefenderBaseUri = 'https://api.security.microsoft.com',
         [string]$AuthorityHost = 'https://login.microsoftonline.com'
     )
 
     $ErrorActionPreference = 'Stop'
-    $import = [bool]($InventoryPath -or $IntunePath -or $EntraPath -or $DefenderPath)
-    if ($InventoryPath -and ($IntunePath -or $EntraPath -or $DefenderPath)) {
-        throw 'Use -InventoryPath or the per-source -IntunePath/-EntraPath/-DefenderPath, not both.'
+    $sourcePaths = [bool]($IntunePath -or $EntraPath -or $DefenderPath -or $GroupPath -or $AdministrativeUnitPath -or $ConditionalAccessPlanPath -or $LifecyclePolicyPath -or $AgentIdentityPath)
+    $import = [bool]($InventoryPath -or $sourcePaths)
+    if ($InventoryPath -and $sourcePaths) {
+        throw 'Use -InventoryPath or the per-source path parameters, not both.'
     }
     if ($Demo -and $TenantId) { throw '-Demo cannot be combined with -TenantId.' }
     $modeCount = @($Demo.IsPresent, [bool]$TenantId, $import) | Where-Object { $_ }
@@ -155,7 +198,17 @@ function Invoke-Quorum {
     $tenantLabel = $TenantId
     $asOfOverride = $AsOf
     $asOf = [datetime]::UtcNow
+    if ($null -ne $asOfOverride) { $asOf = ([datetime]$asOfOverride).ToUniversalTime() }
     $collectors = @()
+    $directoryObjects = @()
+    $haveDirectory = $false
+    $caPlans = @()
+    $lifecyclePolicies = @()
+    $lifecyclePolicySets = @()
+    $agentIdentities = @()
+    $havePlans = $false
+    $haveLifecyclePolicies = $false
+    $haveAgents = $false
 
     if ($Demo) {
         $mode = 'Demo'
@@ -167,11 +220,23 @@ function Invoke-Quorum {
         $inventory = [System.IO.File]::ReadAllText($DemoDataPath) | ConvertFrom-Json
         $parsedAsOf = ConvertTo-QuorumDate $inventory.asOf
         if ($null -eq $parsedAsOf) { throw 'Demo inventory is missing a valid asOf timestamp.' }
-        $asOf = $parsedAsOf
+        if ($null -eq $asOfOverride) { $asOf = $parsedAsOf }
         if ($inventory.tenantLabel) { $tenantLabel = [string]$inventory.tenantLabel }
         $intune = @(ConvertTo-QuorumIntuneRecord -Item $inventory.intune)
         $entra = @(ConvertTo-QuorumEntraRecord -Item $inventory.entra)
         $defender = @(ConvertTo-QuorumDefenderRecord -Item $inventory.defender)
+        if ($inventory.PSObject.Properties['groups'] -or $inventory.PSObject.Properties['administrativeUnits']) {
+            $haveDirectory = $true
+            $directoryObjects = @(ConvertTo-QuorumDirectoryObject -Group $(if ($inventory.PSObject.Properties['groups']) { $inventory.groups }) -AdministrativeUnit $(if ($inventory.PSObject.Properties['administrativeUnits']) { $inventory.administrativeUnits }))
+        }
+        $gov = Read-QuorumGovernanceInventory -Inventory $inventory -AsOf $asOf
+        $caPlans = $gov.Plans
+        $lifecyclePolicies = $gov.Policies
+        $lifecyclePolicySets = $gov.PolicySets
+        $agentIdentities = $gov.Agents
+        $havePlans = $gov.HavePlans
+        $haveLifecyclePolicies = $gov.HavePolicies
+        $haveAgents = $gov.HaveAgents
         $collectors = @(
             [pscustomobject]@{ Source = 'Intune'; Records = $intune; Error = $null }
             [pscustomobject]@{ Source = 'Entra'; Records = $entra; Error = $null }
@@ -191,17 +256,53 @@ function Invoke-Quorum {
             if ($inventory.PSObject.Properties['asOf'] -and $inventory.asOf) {
                 $parsedAsOf = ConvertTo-QuorumDate $inventory.asOf
                 if ($null -eq $parsedAsOf) { throw "Inventory file $InventoryPath has an invalid asOf timestamp." }
-                $asOf = $parsedAsOf
+                if ($null -eq $asOfOverride) { $asOf = $parsedAsOf }
             }
             if ($inventory.PSObject.Properties['tenantLabel'] -and $inventory.tenantLabel) { $tenantLabel = [string]$inventory.tenantLabel }
             if ($inventory.PSObject.Properties['intune']) { $haveIntune = $true; $intuneItems = $inventory.intune }
             if ($inventory.PSObject.Properties['entra']) { $haveEntra = $true; $entraItems = $inventory.entra }
             if ($inventory.PSObject.Properties['defender']) { $haveDefender = $true; $defenderItems = $inventory.defender }
+            if ($inventory.PSObject.Properties['groups'] -or $inventory.PSObject.Properties['administrativeUnits']) {
+                $haveDirectory = $true
+                $directoryObjects = @(ConvertTo-QuorumDirectoryObject -Group $(if ($inventory.PSObject.Properties['groups']) { $inventory.groups }) -AdministrativeUnit $(if ($inventory.PSObject.Properties['administrativeUnits']) { $inventory.administrativeUnits }))
+            }
+            $gov = Read-QuorumGovernanceInventory -Inventory $inventory -AsOf $asOf
+            $caPlans = $gov.Plans
+            $lifecyclePolicies = $gov.Policies
+            $lifecyclePolicySets = $gov.PolicySets
+            $agentIdentities = $gov.Agents
+            $havePlans = $gov.HavePlans
+            $haveLifecyclePolicies = $gov.HavePolicies
+            $haveAgents = $gov.HaveAgents
         }
         else {
             if ($IntunePath) { $haveIntune = $true; $intuneItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $IntunePath) $IntunePath }
             if ($EntraPath) { $haveEntra = $true; $entraItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $EntraPath) $EntraPath }
             if ($DefenderPath) { $haveDefender = $true; $defenderItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $DefenderPath) $DefenderPath }
+            if ($GroupPath -or $AdministrativeUnitPath) {
+                $haveDirectory = $true
+                $groupItems = $null; $unitItems = $null
+                if ($GroupPath) { $groupItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $GroupPath) $GroupPath }
+                if ($AdministrativeUnitPath) { $unitItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $AdministrativeUnitPath) $AdministrativeUnitPath }
+                $directoryObjects = @(ConvertTo-QuorumDirectoryObject -Group $groupItems -AdministrativeUnit $unitItems)
+            }
+            if ($ConditionalAccessPlanPath) {
+                $havePlans = $true
+                $planItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $ConditionalAccessPlanPath) $ConditionalAccessPlanPath
+                $caPlans = @(ConvertTo-QuorumConditionalAccessPlan -Plan $planItems)
+            }
+            if ($LifecyclePolicyPath) {
+                $haveLifecyclePolicies = $true
+                $policyItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $LifecyclePolicyPath) $LifecyclePolicyPath
+                $policyPack = New-QuorumLifecyclePolicySet -Policy $policyItems
+                $lifecyclePolicies = @($policyPack.Policies)
+                $lifecyclePolicySets = @($policyPack.Set)
+            }
+            if ($AgentIdentityPath) {
+                $haveAgents = $true
+                $agentItems = Get-QuorumExportItems (Read-QuorumExportFile -Path $AgentIdentityPath) $AgentIdentityPath
+                $agentIdentities = @(ConvertTo-QuorumAgentIdentity -Identity $agentItems -AsOf $asOf)
+            }
         }
         $notCollected = 'Not provided in this offline import.'
         $collectors = @(
@@ -223,8 +324,6 @@ function Invoke-Quorum {
         )
     }
 
-    if ($null -ne $asOfOverride) { $asOf = ([datetime]$asOfOverride).ToUniversalTime() }
-
     $records = New-Object System.Collections.Generic.List[object]
     $failed = 0
     foreach ($collector in $collectors) {
@@ -235,7 +334,19 @@ function Invoke-Quorum {
     }
 
     $devices = Merge-QuorumDevice -Record $records.ToArray()
-    $findings = Invoke-QuorumRule -Device $devices -Rule $rules -AsOf $asOf
+    $findings = Invoke-QuorumRule -Device $devices -Rule $rules -AsOf $asOf -DirectoryObject $directoryObjects -ConditionalAccessPlan $caPlans -LifecyclePolicy $lifecyclePolicies -LifecyclePolicySet $lifecyclePolicySets -AgentIdentity $agentIdentities
+    if ($haveDirectory) {
+        $collectors = @($collectors) + @([pscustomobject]@{ Source = 'Entra groups and AUs'; Records = @($directoryObjects); Error = $null })
+    }
+    if ($havePlans) {
+        $collectors = @($collectors) + @([pscustomobject]@{ Source = 'Entra Conditional Access plans'; Records = @($caPlans); Error = $null })
+    }
+    if ($haveLifecyclePolicies) {
+        $collectors = @($collectors) + @([pscustomobject]@{ Source = 'Entra Agent ID lifecycle policies'; Records = @($lifecyclePolicies); Error = $null })
+    }
+    if ($haveAgents) {
+        $collectors = @($collectors) + @([pscustomobject]@{ Source = 'Entra Agent ID identities'; Records = @($agentIdentities); Error = $null })
+    }
     $model = New-QuorumViewModel -Device $devices -Finding $findings -Rule $rules -Collector $collectors -AsOf $asOf -Mode $mode -TenantLabel $tenantLabel -Redacted $Redact.IsPresent
     $map = $null
     if ($Redact) {
@@ -271,20 +382,86 @@ function Invoke-Quorum {
         Devices          = @($model['devices'])
         HighestSeverity  = $highest
     }
-    if ($FailOnSeverity) {
+    if ($FailOnSeverity -and -not $FailOnCount) {
         $limit = Get-QuorumSeverityRank $FailOnSeverity
         $over = @($model['findings'] | Where-Object { (Get-QuorumSeverityRank ([string]$_['severity'])) -le $limit })
         if ($over.Count -gt 0) {
             throw ("Quorum found {0} finding(s) at severity {1} or worse. The report was written to {2}." -f $over.Count, $FailOnSeverity, $written.HtmlPath)
         }
     }
+
+    if ($FailOnCount) {
+        if ($FailOnSeverity) {
+            $severityLimit = Get-QuorumSeverityRank $FailOnSeverity
+            $over = @($model['findings'] | Where-Object { (Get-QuorumSeverityRank ([string]$_['severity'])) -le $severityLimit })
+            $msg = "Quorum found {0} finding(s) at severity {1} or worse. Threshold: {2}. The report was written to {3}." -f $over.Count, $FailOnSeverity, $FailOnCount, $written.HtmlPath
+        }
+        else {
+            $over = @($model['findings'])
+            $msg = "Quorum found {0} total finding(s). Threshold: {1}. The report was written to {2}." -f $over.Count, $FailOnCount, $written.HtmlPath
+        }
+        if ($over.Count -ge $FailOnCount) {
+            throw $msg
+        }
+    }
     return $result
+}
+
+function Read-QuorumGovernanceInventory {
+    param($Inventory, [datetime]$AsOf)
+    $plans = @()
+    $policies = @()
+    $sets = @()
+    $agents = @()
+    $havePlans = $false
+    $havePolicies = $false
+    $haveAgents = $false
+    if ($null -eq $Inventory) {
+        return [pscustomobject]@{ Plans = $plans; Policies = $policies; PolicySets = $sets; Agents = $agents; HavePlans = $havePlans; HavePolicies = $havePolicies; HaveAgents = $haveAgents }
+    }
+    if ($Inventory.PSObject.Properties['conditionalAccessPlans']) {
+        $havePlans = $true
+        $plans = @(ConvertTo-QuorumConditionalAccessPlan -Plan $Inventory.conditionalAccessPlans)
+    }
+    if ($Inventory.PSObject.Properties['lifecyclePolicies']) {
+        $havePolicies = $true
+        $pack = New-QuorumLifecyclePolicySet -Policy $Inventory.lifecyclePolicies
+        $policies = @($pack.Policies)
+        $sets = @($pack.Set)
+    }
+    if ($Inventory.PSObject.Properties['agentIdentities']) {
+        $haveAgents = $true
+        $agents = @(ConvertTo-QuorumAgentIdentity -Identity $Inventory.agentIdentities -AsOf $AsOf)
+    }
+    return [pscustomobject]@{ Plans = $plans; Policies = $policies; PolicySets = $sets; Agents = $agents; HavePlans = $havePlans; HavePolicies = $havePolicies; HaveAgents = $haveAgents }
+}
+
+function Read-QuorumExportText {
+    # Reads an export as text. A gzip file (magic bytes 1F 8B, for example export.json.gz)
+    # is decompressed first, whatever its extension. Encoding is detected from a BOM, else UTF-8.
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -ge 2 -and $bytes[0] -eq 0x1F -and $bytes[1] -eq 0x8B) {
+        $compressed = New-Object System.IO.MemoryStream(, $bytes)
+        $gzip = New-Object System.IO.Compression.GZipStream($compressed, [System.IO.Compression.CompressionMode]::Decompress)
+        $output = New-Object System.IO.MemoryStream
+        try { $gzip.CopyTo($output) }
+        catch { throw "Export file $Path looks like gzip but cannot be decompressed: $(Get-QuorumErrorMessage $_)" }
+        finally { $gzip.Dispose(); $compressed.Dispose() }
+        $bytes = $output.ToArray()
+        $output.Dispose()
+        if ($bytes.Length -eq 0) { throw "Export file $Path looks like gzip but decompresses to nothing (truncated or empty archive)." }
+    }
+    $stream = New-Object System.IO.MemoryStream(, $bytes)
+    $reader = New-Object System.IO.StreamReader($stream, (New-Object System.Text.UTF8Encoding($false)), $true)
+    try { return $reader.ReadToEnd() }
+    finally { $reader.Dispose() }
 }
 
 function Read-QuorumExportFile {
     param([Parameter(Mandatory = $true)][string]$Path)
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Export file not found: $Path" }
-    $text = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $Path).ProviderPath)
+    $text = Read-QuorumExportText -Path (Resolve-Path -LiteralPath $Path).ProviderPath
     try { $parsed = ConvertFrom-Json -InputObject $text }
     catch { throw "Export file $Path is not valid JSON: $(Get-QuorumErrorMessage $_)" }
     # Keep one-element and empty arrays as arrays on every PowerShell version.

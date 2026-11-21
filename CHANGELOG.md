@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Windows Server is a separate `device.class` (`windows-server`) so Intune-enrolled preview servers are not treated as Windows clients. Classification uses documented Intune SKU numbers and assignment-filter names, Entra `operatingSystem` `Windows Server`, and Defender `Windows Server` / `WindowsServer*` platforms. Rule Q002 now matches Windows clients only. The demo includes an enrolled vNext pilot server; the previous Entra-only Windows Server no longer raises Q002, so the demo finding count is 44.
+- Offline import reads Conditional Access policy plans (`-ConditionalAccessPlanPath` or `conditionalAccessPlans` in an inventory file) and evaluates Q014 (no enforcing rule) and Q015 (no owners). Plans are a preview feature; the Graph API is documented in beta only. Live collection does not read plans.
+- Offline import reads Entra Agent ID lifecycle policies (`-LifecyclePolicyPath` or `lifecyclePolicies`) and agent identities (`-AgentIdentityPath` or `agentIdentities`). Q016 flags an export with no enabled Agent ID policy (guest policies are ignored). Q017 and Q018 flag an enabled agent identity with no effective governing policy or no sponsors, when those properties are present in the export. Graph v1.0. Live collection does not read these objects.
+- Offline import reads gzip-compressed exports (`.json.gz`) for every `-*Path` parameter. Gzip is detected by its magic bytes; a truncated archive fails with a clear message.
+- `-FailOnCount` parameter for `Invoke-Quorum`: throws after the report is written when the finding count reaches a threshold. With `-FailOnSeverity` counts only findings at that severity or worse; alone counts all findings.
+- Rule Q013 flags dynamic groups and dynamic administrative units whose membership rule uses `memberOf`. Microsoft stopped updating them on 3 November 2026 ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/identity/users/groups-dynamic-rule-member-of)).
+- Rules can set `subject: directoryObject` to evaluate groups and administrative units with the new `directory.*` facts. `Test-QuorumRule` checks the facts against the subject.
+- Offline import reads `-GroupPath` and `-AdministrativeUnitPath`, or `groups` and `administrativeUnits` in an inventory file. The demo inventory has fictional examples.
+- CI: Pester runs on PowerShell 7.6 LTS (7.6.10) and 7.7 (7.7.0) on Linux and Windows, plus Windows PowerShell 5.1. Both releases are SHA-256 pinned via `.github/actions/install-pwsh`. PowerShell 7.4 and 7.5 reached end of support on 10 Nov 2026 ([support lifecycle](https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle)) and are no longer tested. Supported: Windows PowerShell 5.1, PowerShell 7.6 (LTS), PowerShell 7.7.
+
 ## 0.2.0 - 2026-10-28
 
 - Offline import: `-InventoryPath` for one combined file, or `-IntunePath`, `-EntraPath`, and `-DefenderPath` for separate exports. Each file can be a JSON array or a raw API page with `value`. Missing sources are reported as not provided. `-AsOf` sets the reference time.
