@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added `Invoke-QuorumIdentityCheck` for offline JSON-export checks of the announced SMS/voice and `memberOf` retirements. It writes JSON, CSV, and Markdown findings, supports `-Demo`, `-Redact`, `-AsOf`, and `-FailOnSeverity`.
+- Added E003 to `Invoke-QuorumIdentityCheck`: Intune Windows security baseline profiles older than `-ExpectedWindowsBaseline` (default `26H2`), read from a `configurationPolicies` export via `-ConfigurationPoliciesPath`.
+- Added fictional identity exports and Pester coverage for the identity checks.
 - Windows Server is a separate `device.class` (`windows-server`) so Intune-enrolled preview servers are not treated as Windows clients. Classification uses documented Intune SKU numbers and assignment-filter names, Entra `operatingSystem` `Windows Server`, and Defender `Windows Server` / `WindowsServer*` platforms. Rule Q002 now matches Windows clients only. The demo includes an enrolled vNext pilot server; the previous Entra-only Windows Server no longer raises Q002, so the demo finding count is 44.
 - Offline import reads Conditional Access policy plans (`-ConditionalAccessPlanPath` or `conditionalAccessPlans` in an inventory file) and evaluates Q014 (no enforcing rule) and Q015 (no owners). Plans are a preview feature; the Graph API is documented in beta only. Live collection does not read plans.
 - Offline import reads Entra Agent ID lifecycle policies (`-LifecyclePolicyPath` or `lifecyclePolicies`) and agent identities (`-AgentIdentityPath` or `agentIdentities`). Q016 flags an export with no enabled Agent ID policy (guest policies are ignored). Q017 and Q018 flag an enabled agent identity with no effective governing policy or no sponsors, when those properties are present in the export. Graph v1.0. Live collection does not read these objects.

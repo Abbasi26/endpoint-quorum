@@ -1,0 +1,19 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directory/administrativeUnits",
+  "value": [
+    {
+      "id": "00000000-0000-0000-0000-0000000000c1",
+      "displayName": "Dynamic administrative unit with memberOf",
+      "membershipType": "dynamic",
+      "membershipRule": "device.memberof -any (group.objectId -in ['00000000-0000-0000-0000-0000000000e3'])",
+      "membershipRuleProcessingState": "On"
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c2",
+      "displayName": "Assigned administrative unit",
+      "membershipType": "assigned",
+      "membershipRule": null,
+      "membershipRuleProcessingState": null
+    }
+  ]
+}

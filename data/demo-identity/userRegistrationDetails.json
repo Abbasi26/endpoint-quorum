@@ -1,0 +1,129 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#reports/authenticationMethods/userRegistrationDetails",
+  "value": [
+    {
+      "id": "00000000-0000-0000-0000-0000000000a1",
+      "userPrincipalName": "sms.only.member@lab.example",
+      "userDisplayName": "Casey Sms",
+      "userType": "member",
+      "isAdmin": false,
+      "isMfaRegistered": true,
+      "isMfaCapable": true,
+      "methodsRegistered": [
+        "mobilePhone"
+      ],
+      "userPreferredMethodForSecondaryAuthentication": "mobilePhone",
+      "systemPreferredAuthenticationMethods": [
+        "sms"
+      ]
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a2",
+      "userPrincipalName": "voice.office.member@lab.example",
+      "userDisplayName": "Devon Office",
+      "userType": "member",
+      "isAdmin": false,
+      "isMfaRegistered": true,
+      "isMfaCapable": true,
+      "methodsRegistered": [
+        "officePhone"
+      ],
+      "userPreferredMethodForSecondaryAuthentication": "officePhone",
+      "systemPreferredAuthenticationMethods": [
+        "voiceOffice"
+      ]
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a3",
+      "userPrincipalName": "mobile.email.member@lab.example",
+      "userDisplayName": "Elliot Email",
+      "userType": "member",
+      "isAdmin": false,
+      "isMfaRegistered": true,
+      "isMfaCapable": true,
+      "methodsRegistered": [
+        "mobilePhone",
+        "email"
+      ],
+      "userPreferredMethodForSecondaryAuthentication": "mobilePhone",
+      "systemPreferredAuthenticationMethods": [
+        "sms"
+      ]
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a4",
+      "userPrincipalName": "mobile.push.member@lab.example",
+      "userDisplayName": "Frankie Push",
+      "userType": "member",
+      "isAdmin": false,
+      "isMfaRegistered": true,
+      "isMfaCapable": true,
+      "methodsRegistered": [
+        "mobilePhone",
+        "microsoftAuthenticatorPush"
+      ],
+      "userPreferredMethodForSecondaryAuthentication": "microsoftAuthenticatorPush",
+      "systemPreferredAuthenticationMethods": [
+        "push"
+      ]
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a5",
+      "userPrincipalName": "passkey.only.member@lab.example",
+      "userDisplayName": "Gale Passkey",
+      "userType": "member",
+      "isAdmin": false,
+      "isMfaRegistered": true,
+      "isMfaCapable": true,
+      "methodsRegistered": [
+        "passKeyDeviceBound"
+      ],
+      "userPreferredMethodForSecondaryAuthentication": "passKeyDeviceBound",
+      "systemPreferredAuthenticationMethods": []
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a6",
+      "userPrincipalName": "admin.mobile.member@lab.example",
+      "userDisplayName": "Harper Admin",
+      "userType": "member",
+      "isAdmin": true,
+      "isMfaRegistered": true,
+      "isMfaCapable": true,
+      "methodsRegistered": [
+        "mobilePhone"
+      ],
+      "userPreferredMethodForSecondaryAuthentication": "mobilePhone",
+      "systemPreferredAuthenticationMethods": [
+        "sms"
+      ]
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a7",
+      "userPrincipalName": "guest.mobile@lab.example",
+      "userDisplayName": "Indigo Guest",
+      "userType": "guest",
+      "isAdmin": false,
+      "isMfaRegistered": true,
+      "isMfaCapable": true,
+      "methodsRegistered": [
+        "mobilePhone"
+      ],
+      "userPreferredMethodForSecondaryAuthentication": "mobilePhone",
+      "systemPreferredAuthenticationMethods": [
+        "sms"
+      ]
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a8",
+      "userPrincipalName": "no.methods.member@lab.example",
+      "userDisplayName": "Jamie Empty",
+      "userType": "member",
+      "isAdmin": false,
+      "isMfaRegistered": false,
+      "isMfaCapable": false,
+      "methodsRegistered": [],
+      "userPreferredMethodForSecondaryAuthentication": null,
+      "systemPreferredAuthenticationMethods": []
+    }
+  ]
+}

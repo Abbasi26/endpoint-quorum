@@ -6,7 +6,7 @@
     Copyright         = '(c) 2026 Wasaf Abbasi. Licensed under the MIT License.'
     Description       = 'Read-only cross-source device contradictions for Intune, Entra ID, and Microsoft Defender for Endpoint.'
     PowerShellVersion = '5.1'
-    FunctionsToExport = @('Invoke-Quorum', 'Test-QuorumRule')
+    FunctionsToExport = @('Invoke-Quorum', 'Test-QuorumRule', 'Invoke-QuorumIdentityCheck')
     CmdletsToExport   = @()
     VariablesToExport = @()
     AliasesToExport   = @()
