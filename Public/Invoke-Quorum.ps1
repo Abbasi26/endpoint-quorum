@@ -95,7 +95,7 @@ function Invoke-Quorum {
         Path to a Quorum-Findings.json from a previous run. When provided, the current run is
         compared against the baseline and three finding sets are reported:
         New (present now, absent in baseline), Resolved (present in baseline, absent now),
-        and Unchanged (present in both). The HTML report shows counters and a filter dropdown.
+        and Unchanged (present in both). The HTML report shows counters and a filter for current findings.
         The Markdown summary includes the three counters. The JSON output adds a
         meta.comparison object with the three arrays of finding keys and counts.
         -FailOnSeverity and HighestSeverity continue to operate on the full current finding set.
@@ -198,7 +198,7 @@ function Invoke-Quorum {
     }
 
     # Load and validate BaselinePath if provided
-    $baselineFindings = @()
+    $baselineFindings = $null
     if ($BaselinePath) {
         if (-not (Test-Path -LiteralPath $BaselinePath -PathType Leaf)) {
             throw "Baseline file not found: $BaselinePath"

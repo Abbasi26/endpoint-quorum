@@ -38,13 +38,12 @@ function New-QuorumViewModel {
 
     # Compute baseline comparison if BaselineFinding provided
     $comparison = $null
-    if ($BaselineFinding -and $BaselineFinding.Count -gt 0) {
+    if ($null -ne $BaselineFinding) {
         function Get-QuorumFindingKey {
             param($Finding)
             $ids = @($Finding.quorumIds) | Sort-Object
             return ($Finding.ruleId + '|' + ($ids -join ','))
         }
-        [void](Get-QuorumFindingKey @())  # suppress function definition output
 
         $baselineKeys = @($BaselineFinding | ForEach-Object { Get-QuorumFindingKey $_ })
         $baselineSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)

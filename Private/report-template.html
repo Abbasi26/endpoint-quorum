@@ -288,7 +288,6 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
         <select id="cmp-filter" class="ghost" aria-label="Comparison filter" style="display:none;">
           <option value="all">All findings</option>
           <option value="new">New</option>
-          <option value="resolved">Resolved</option>
           <option value="unchanged">Unchanged</option>
         </select>
       </div>
@@ -341,7 +340,7 @@ footer.note { margin-top: 28px; color: var(--muted); font-size: 12px; }
     return data.findings.filter(function (f) {
       if (state.severity !== "all" && f.severity !== state.severity) return false;
       if (state.rule !== "all" && f.ruleId !== state.rule) return false;
-      if (state.comparison !== "all" && f.comparisonState !== state.comparison) return false;
+      if (state.comparison !== "all" && String(f.comparisonState || "").toLowerCase() !== state.comparison) return false;
       if (!q) return true;
       var ev = (f.evidence || []).map(function (e) { return e.label + " " + e.value; }).join(" ");
       return matchText([f.hostname, f.ruleId, f.title, f.description, ev]).indexOf(q) >= 0;
